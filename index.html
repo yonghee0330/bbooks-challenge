@@ -468,202 +468,311 @@
   </div>
 </div>
 
-<script>
-// ══════════════════════════════════════════
-//  ⚙️ 설정 — Apps Script 배포 후 URL 입력
-// ══════════════════════════════════════════
-const API = 'https://script.google.com/macros/s/AKfycbxQoAZuyEmpzfg59ueomJkof0fXBxl-5sPGV-j12AhpqyppiRn7wsH4KJyJ3k7BnerD0g/exec';
+<script type="module">
+// ══════════════════════════════════════════════════════════════
+//  📚 비북스 독서 챌린지 — Firebase Firestore 연동
+// ══════════════════════════════════════════════════════════════
+import { initializeApp }                        from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getFirestore, collection, doc,
+         addDoc, updateDoc, setDoc,
+         getDoc, getDocs, query,
+         where, orderBy, limit,
+         onSnapshot, serverTimestamp }           from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
 
-// ══════════════════════════════════════════
-//  상태
-// ══════════════════════════════════════════
-let U = null, myBook = null;
-let selTags = [], curSentId = null;
+// ── Firebase 설정 ─────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            'AIzaSyAJs3ouLWFUwls7UcnSoBirUXJOFVC1H8U',
+  authDomain:        'bbooks-challenge.firebaseapp.com',
+  projectId:         'bbooks-challenge',
+  storageBucket:     'bbooks-challenge.firebasestorage.app',
+  messagingSenderId: '1002103298667',
+  appId:             '1:1002103298667:web:ecfd3366692134efe02f2e'
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
-// ══════════════════════════════════════════
-//  API
-// ══════════════════════════════════════════
-async function GET(action, p = {}) {
-  const url = new URL(API);
-  url.searchParams.set('action', action);
-  Object.entries(p).forEach(([k, v]) => url.searchParams.set(k, v));
-  const r = await fetch(url.toString(), { redirect: 'follow' });
-  return r.json();
+// ── 상태 ──────────────────────────────────────────────────────
+let U       = null;   // 로그인 유저 { uid, name, memberId }
+let myBook  = null;   // 내 책 데이터
+let selTags = [];
+let curSentId = null;
+
+// ── 유틸 ──────────────────────────────────────────────────────
+const q       = sel => document.querySelector(sel);
+const todayStr= () => new Date().toLocaleDateString('sv-SE');
+const fmtD    = s  => s ? s.slice(5).replace('-', '/') : '';
+const esc     = s  => String(s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+const escA    = s  => String(s).replace(/'/g,"&#39;").replace(/"/g,'&quot;').slice(0,60);
+
+function tagPill(t) {
+  const m = { '!':['pb','❗'], '?':['pq','❓'], '"':['pqt','💬'], '@':['pa','✨'] };
+  const [cls, icon] = m[t] || ['', ''];
+  return `<span class="pill ${cls}">${icon}</span>`;
 }
-async function POST(data) {
-  const r = await fetch(API, {
-    method: 'POST', redirect: 'follow',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(data)
-  });
-  return r.json();
+function flash(id, msg, type) {
+  const el = q(`#${id}`);
+  if (!el) return;
+  el.innerHTML = `<div class="alert ${type==='e'?'ae':'ao'}">${msg}</div>`;
+  if (type !== 'o') setTimeout(() => { el.innerHTML = ''; }, 5000);
 }
+function setLoad(id, on, txt) {
+  const b = q(`#${id}`);
+  if (!b) return;
+  b.disabled = on;
+  if (txt) b.innerHTML = on ? `<span class="spin"></span>${txt}` : txt;
+}
+function openOv(id)  { q(`#${id}`)?.classList.add('on'); }
+function closeOv(id) { q(`#${id}`)?.classList.remove('on'); }
 
-// ══════════════════════════════════════════
-//  로그인 / 회원가입
-// ══════════════════════════════════════════
-function showSignup() { q('#loginForm').style.display='none'; q('#signupForm').style.display='block'; q('#loginAlert').innerHTML=''; }
-function showLogin()  { q('#signupForm').style.display='none'; q('#loginForm').style.display='block'; q('#loginAlert').innerHTML=''; }
+// ── 로그인 / 회원가입 전환 ────────────────────────────────────
+window.showSignup = () => {
+  q('#loginForm').style.display  = 'none';
+  q('#signupForm').style.display = 'block';
+  q('#loginAlert').innerHTML = '';
+};
+window.showLogin = () => {
+  q('#signupForm').style.display = 'none';
+  q('#loginForm').style.display  = 'block';
+  q('#loginAlert').innerHTML = '';
+};
 
-async function doLogin() {
-  const name=q('#lName').value.trim(), pw=q('#lPw').value.trim();
-  if (!name||!pw) { flash('loginAlert','이름과 비밀번호를 입력해주세요.','e'); return; }
+// ── 로그인 ────────────────────────────────────────────────────
+window.doLogin = async () => {
+  const name = q('#lName').value.trim();
+  const pw   = q('#lPw').value.trim();
+  if (!name || !pw) { flash('loginAlert','이름과 비밀번호를 입력해주세요.','e'); return; }
   setLoad('loginBtn', true, '로그인 중...');
   try {
-    const r = await GET('login', { name, password: pw });
-    if (r.success) { U=r.member; initApp(); }
-    else flash('loginAlert', r.message, 'e');
-  } catch { flash('loginAlert','서버 연결 실패. 잠시 후 다시 시도해주세요.','e'); }
+    const snap = await getDocs(
+      query(collection(db, 'members'), where('name','==',name))
+    );
+    if (snap.empty) { flash('loginAlert','등록된 멤버가 아닙니다.','e'); return; }
+    const docData = snap.docs[0];
+    const m = docData.data();
+    if (m.password !== pw) { flash('loginAlert','비밀번호가 틀렸습니다.','e'); return; }
+    U = { uid: docData.id, name: m.name, memberId: docData.id };
+    // 로그인 시각 업데이트
+    await updateDoc(doc(db, 'members', docData.id), { lastLogin: serverTimestamp() });
+    await initApp();
+  } catch(e) { flash('loginAlert','오류: '+e.message,'e'); }
   finally { setLoad('loginBtn', false, '로그인'); }
-}
+};
 
-async function doSignup() {
-  const name=q('#sName').value.trim(), pw=q('#sPw').value.trim(), book=q('#sBook').value.trim();
-  if (!name||!pw) { flash('loginAlert','이름과 비밀번호를 입력해주세요.','e'); return; }
+// ── 회원가입 ──────────────────────────────────────────────────
+window.doSignup = async () => {
+  const name  = q('#sName').value.trim();
+  const pw    = q('#sPw').value.trim();
+  const book  = q('#sBook').value.trim();
+  if (!name || !pw) { flash('loginAlert','이름과 비밀번호를 입력해주세요.','e'); return; }
+  if (pw.length < 4) { flash('loginAlert','비밀번호는 4자리 이상으로 설정해주세요.','e'); return; }
   setLoad('signupBtn', true, '신청 중...');
   try {
-    const r = await POST({ action:'signup', name, password:pw, bookTitle:book });
-    if (r.success) { U=r.member; initApp(); }
-    else flash('loginAlert', r.message, 'e');
-  } catch { flash('loginAlert','서버 연결 실패.','e'); }
+    // 이름 중복 확인
+    const dup = await getDocs(
+      query(collection(db, 'members'), where('name','==',name))
+    );
+    if (!dup.empty) { flash('loginAlert','이미 사용 중인 이름입니다.','e'); return; }
+
+    const ref = await addDoc(collection(db, 'members'), {
+      name, password: pw,
+      joinedAt: serverTimestamp(),
+      lastLogin: serverTimestamp(),
+    });
+    U = { uid: ref.id, name, memberId: ref.id };
+
+    // 책 제목이 있으면 바로 등록
+    if (book) {
+      const bRef = await addDoc(collection(db, 'books'), {
+        memberId: ref.id, memberName: name,
+        title: book, author: '', totalPages: 0,
+        coverUrl: '', toc: '',
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+      });
+      myBook = { bookId: bRef.id, memberId: ref.id, title: book,
+                 author: '', totalPages: 0, coverUrl: '', toc: '' };
+    }
+    await initApp();
+  } catch(e) { flash('loginAlert','오류: '+e.message,'e'); }
   finally { setLoad('signupBtn', false, '멤버 신청하기'); }
-}
+};
 
-function doLogout() {
-  U=null; myBook=null;
-  q('#loginScreen').style.display='flex';
-  q('#appWrap').style.display='none';
-}
+// ── 로그아웃 ──────────────────────────────────────────────────
+window.doLogout = () => {
+  U = null; myBook = null;
+  q('#loginScreen').style.display = 'flex';
+  q('#appWrap').style.display = 'none';
+  q('#lName').value = ''; q('#lPw').value = '';
+  showLogin();
+};
 
-// ══════════════════════════════════════════
-//  초기화
-// ══════════════════════════════════════════
+// ── 앱 초기화 ─────────────────────────────────────────────────
 async function initApp() {
-  q('#loginScreen').style.display='none';
-  q('#appWrap').style.display='block';
-  q('#homeGreet').textContent=`${U.name}님, 오늘도 읽어요 📖`;
+  q('#loginScreen').style.display = 'none';
+  q('#appWrap').style.display = 'block';
+  q('#homeGreet').textContent = `${U.name}님, 오늘도 읽어요 📖`;
   await loadMyBook();
   await loadHome();
+  goTab('Home');
 }
 
-// ══════════════════════════════════════════
-//  탭 이동
-// ══════════════════════════════════════════
-async function goTab(tab) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-  q(`#sc${tab}`).classList.add('on');
-  const btn=document.querySelector(`[data-sc="${tab}"]`);
-  if(btn) btn.classList.add('active');
-  if(tab==='Home')    await loadHome();
-  if(tab==='Feed')    await loadFeed();
-  if(tab==='Cert')    { loadCertPage(); await loadCertHist(); }
-  if(tab==='Members') await loadMembers();
-  if(tab==='MyBook')  renderMyBookPage();
-}
+// ── 탭 이동 ───────────────────────────────────────────────────
+window.goTab = async function(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  q(`#sc${tab}`)?.classList.add('on');
+  const btn = document.querySelector(`[data-sc="${tab}"]`);
+  if (btn) btn.classList.add('active');
+  if (tab === 'Home')    await loadHome();
+  if (tab === 'Feed')    await loadFeed();
+  if (tab === 'Cert')    { loadCertPage(); await loadCertHist(); }
+  if (tab === 'Members') await loadMembers();
+  if (tab === 'MyBook')  renderMyBookPage();
+};
 
-// ══════════════════════════════════════════
-//  홈
-// ══════════════════════════════════════════
+// ══ 홈 ═══════════════════════════════════════════════════════
 async function loadHome() {
   if (myBook) {
     q('#homeBook').textContent = myBook.title;
-    const r = await GET('getMyCerts', { memberId: U.memberId });
-    if (r.success) {
-      const total = r.certs.reduce((a,c)=>a+Number(c.todayPages),0);
-      const days  = r.certs.length;
-      const pct   = myBook.totalPages>0 ? Math.min(100,Math.round(total/myBook.totalPages*100)) : 0;
-      q('#hTotal').textContent=total; q('#hDays').textContent=days;
-      q('#hPct').textContent=pct+'%'; q('#hBar').style.width=pct+'%';
-      const today=todayStr();
-      const cert=r.certs.find(c=>c.date===today);
-      q('#todayBadge').innerHTML=cert
-        ? `<span style="font-size:20px">✅</span>`
-        : `<span class="badge">오늘 미인증</span>`;
-    }
-  }
-  const r2 = await GET('getTodayCerts');
-  const el=q('#todayList');
-  if (r2.success && r2.certs.length) {
-    el.innerHTML=r2.certs.map(c=>`
-      <div class="card" style="padding:13px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px">
-        <div class="avatar">${c.memberName[0]}</div>
-        <div style="flex:1">
-          <div style="font-size:13px;font-weight:700;color:var(--green)">${c.memberName}</div>
-          <div style="font-size:11px;color:var(--muted)">${c.bookTitle||''}</div>
-          ${c.memo?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(c.memo)}</div>`:''}
-        </div>
-        <div style="text-align:right;flex-shrink:0">
-          <div style="font-size:18px;font-weight:700;color:var(--accent)">${c.todayPages}p</div>
-        </div>
-      </div>`).join('');
+    // 내 인증 통계
+    const snap = await getDocs(
+      query(collection(db,'certs'), where('memberId','==',U.uid))
+    );
+    let total = 0, days = 0, todayCerted = false;
+    const today = todayStr();
+    snap.forEach(d => {
+      const c = d.data();
+      total += Number(c.todayPages) || 0;
+      days++;
+      if (c.date === today) todayCerted = true;
+    });
+    const pct = myBook.totalPages > 0
+      ? Math.min(100, Math.round(total / myBook.totalPages * 100)) : 0;
+    q('#hTotal').textContent = total;
+    q('#hDays').textContent  = days;
+    q('#hPct').textContent   = pct + '%';
+    q('#hBar').style.width   = pct + '%';
+    q('#todayBadge').innerHTML = todayCerted
+      ? `<span style="font-size:20px">✅</span>`
+      : `<span class="badge">오늘 미인증</span>`;
   } else {
-    el.innerHTML=`<div class="empty" style="padding:24px"><div class="ei" style="font-size:28px">🌅</div><div style="font-size:13px">오늘 첫 인증을 해보세요!</div></div>`;
+    q('#homeBook').textContent = '책을 등록해주세요';
   }
-}
 
-// ══════════════════════════════════════════
-//  피드
-// ══════════════════════════════════════════
-async function loadFeed() {
-  const r=await GET('getSentences');
-  const el=q('#feedList');
-  if (!r.success||!r.sentences.length) {
-    el.innerHTML=`<div class="empty"><div class="ei">💬</div>아직 공유된 문장이 없어요<br><small style="font-size:12px;margin-top:6px;display:block">+ 버튼으로 첫 문장을 올려보세요!</small></div>`;
+  // 오늘 전체 인증 현황
+  const snap2 = await getDocs(
+    query(collection(db,'certs'), where('date','==',todayStr()))
+  );
+  const el = q('#todayList');
+  if (snap2.empty) {
+    el.innerHTML = `<div class="empty" style="padding:24px"><div class="ei" style="font-size:28px">🌅</div><div style="font-size:13px">오늘 첫 인증을 해보세요!</div></div>`;
     return;
   }
-  el.innerHTML=r.sentences.map(s=>{
-    const tags=(s.tags||'').split(',').filter(Boolean).map(t=>tagPill(t)).join('');
-    return `<div class="sc">
-      <div class="sc-hd">
-        <div class="avatar">${s.memberName[0]}</div>
-        <div>
-          <div class="sc-name">${s.memberName}</div>
-          <div class="sc-book">${s.bookTitle||''}</div>
-        </div>
-        <div style="margin-left:auto;font-size:11px;color:var(--muted)">${fmtD(s.date)}</div>
+  const certs = [];
+  snap2.forEach(d => certs.push(d.data()));
+  el.innerHTML = certs.map(c => `
+    <div class="card" style="padding:13px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <div class="avatar">${c.memberName[0]}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--green)">${c.memberName}</div>
+        <div style="font-size:11px;color:var(--muted)">${c.bookTitle||''}</div>
+        ${c.memo?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(c.memo)}</div>`:''}
       </div>
-      <div class="sc-sent">${esc(s.sentence)}</div>
-      <div class="sc-pg">${s.page?'p. '+s.page:''}</div>
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div style="display:flex;gap:5px;flex-wrap:wrap">${tags}</div>
-        <button class="cmt-btn" onclick="openCmt('${s.sentenceId}','${escA(s.sentence)}')">
-          💬 ${s.commentCount>0?s.commentCount+' 개':'댓글'}
-        </button>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:18px;font-weight:700;color:var(--accent)">${c.todayPages}p</div>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 }
 
-// ══════════════════════════════════════════
-//  인증
-// ══════════════════════════════════════════
-function loadCertPage() {
-  q('#certDate').textContent='📅 '+todayStr();
-  q('#certBook').textContent=myBook?myBook.title:'📖 내 책 탭에서 책을 먼저 등록해주세요';
-}
-async function submitCert() {
-  if (!myBook) { flash('certAlert','내 책 탭에서 책을 먼저 등록해주세요.','e'); return; }
-  const pages=parseInt(q('#certPages').value);
-  if (!pages||pages<1) { flash('certAlert','읽은 페이지 수를 입력해주세요.','e'); return; }
-  setLoad('certBtn',true,'인증 중...');
+// ══ 피드 ═════════════════════════════════════════════════════
+async function loadFeed() {
+  const el = q('#feedList');
+  el.innerHTML = `<div class="empty"><div class="ei">💬</div>불러오는 중...</div>`;
   try {
-    const r=await POST({ action:'certify', memberId:U.memberId, memberName:U.name,
-      bookId:myBook.bookId, bookTitle:myBook.title,
-      date:todayStr(), todayPages:pages, memo:q('#certMemo').value.trim() });
-    if (r.success) {
-      flash('certAlert',`✅ ${pages}페이지 인증 완료!`,'o');
-      q('#certPages').value=''; q('#certMemo').value='';
-      await loadCertHist(); await loadHome();
-    } else flash('certAlert',r.message,'e');
-  } catch { flash('certAlert','오류가 발생했습니다.','e'); }
-  finally { setLoad('certBtn',false,'인증하기 ✅'); }
+    const snap = await getDocs(
+      query(collection(db,'sentences'), orderBy('createdAt','desc'))
+    );
+    if (snap.empty) {
+      el.innerHTML = `<div class="empty"><div class="ei">💬</div>아직 공유된 문장이 없어요<br><small style="font-size:12px;margin-top:6px;display:block">+ 버튼으로 첫 문장을 올려보세요!</small></div>`;
+      return;
+    }
+    // 댓글 수 병합
+    const sentences = [];
+    for (const d of snap.docs) {
+      const s = { id: d.id, ...d.data() };
+      const cmtSnap = await getDocs(collection(db,'sentences',d.id,'comments'));
+      s.commentCount = cmtSnap.size;
+      sentences.push(s);
+    }
+    el.innerHTML = sentences.map(s => {
+      const tags = (s.tags||'').split(',').filter(Boolean).map(t=>tagPill(t)).join('');
+      return `<div class="sc">
+        <div class="sc-hd">
+          <div class="avatar">${s.memberName[0]}</div>
+          <div>
+            <div class="sc-name">${esc(s.memberName)}</div>
+            <div class="sc-book">${esc(s.bookTitle||'')}</div>
+          </div>
+          <div style="margin-left:auto;font-size:11px;color:var(--muted)">${fmtD(s.date)}</div>
+        </div>
+        <div class="sc-sent">${esc(s.sentence)}</div>
+        <div class="sc-pg">${s.page?'p. '+s.page:''}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;gap:5px;flex-wrap:wrap">${tags}</div>
+          <button class="cmt-btn" onclick="openCmt('${s.id}','${escA(s.sentence)}')">
+            💬 ${s.commentCount>0?s.commentCount+' 개':'댓글'}
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="ei">⚠️</div>${e.message}</div>`;
+  }
 }
+
+// ══ 인증 ═════════════════════════════════════════════════════
+function loadCertPage() {
+  q('#certDate').textContent = '📅 ' + todayStr();
+  q('#certBook').textContent = myBook ? myBook.title : '📖 내 책 탭에서 책을 먼저 등록해주세요';
+}
+
+window.submitCert = async () => {
+  if (!myBook) { flash('certAlert','내 책 탭에서 책을 먼저 등록해주세요.','e'); return; }
+  const pages = parseInt(q('#certPages').value);
+  if (!pages || pages < 1) { flash('certAlert','읽은 페이지 수를 입력해주세요.','e'); return; }
+  setLoad('certBtn', true, '인증 중...');
+  try {
+    await addDoc(collection(db,'certs'), {
+      memberId:   U.uid,
+      memberName: U.name,
+      bookId:     myBook.bookId,
+      bookTitle:  myBook.title,
+      date:       todayStr(),
+      todayPages: pages,
+      memo:       q('#certMemo').value.trim(),
+      createdAt:  serverTimestamp()
+    });
+    flash('certAlert', `✅ ${pages}페이지 인증 완료!`, 'o');
+    q('#certPages').value = ''; q('#certMemo').value = '';
+    await loadCertHist();
+    await loadHome();
+  } catch(e) { flash('certAlert','오류: '+e.message,'e'); }
+  finally { setLoad('certBtn', false, '인증하기 ✅'); }
+};
+
 async function loadCertHist() {
-  const r=await GET('getMyCerts',{memberId:U.memberId});
-  const el=q('#certHist');
-  if (!r.success||!r.certs.length) { el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">아직 인증 내역이 없어요</div>`; return; }
-  el.innerHTML=r.certs.slice(0,10).map(c=>`
+  const snap = await getDocs(
+    query(collection(db,'certs'), where('memberId','==',U.uid), orderBy('createdAt','desc'))
+  );
+  const el = q('#certHist');
+  if (snap.empty) {
+    el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">아직 인증 내역이 없어요</div>`;
+    return;
+  }
+  const certs = [];
+  snap.forEach(d => certs.push(d.data()));
+  el.innerHTML = certs.slice(0,10).map(c => `
     <div class="cert-row">
       <div>
         <div style="font-size:12px;color:var(--muted)">${c.date}</div>
@@ -673,172 +782,221 @@ async function loadCertHist() {
     </div>`).join('');
 }
 
-// ══════════════════════════════════════════
-//  멤버
-// ══════════════════════════════════════════
+// ══ 멤버 ═════════════════════════════════════════════════════
 async function loadMembers() {
-  const r=await GET('getMembers');
-  const el=q('#memberList');
-  if (!r.success||!r.members.length) { el.innerHTML='<div class="empty"><div class="ei">👥</div>멤버가 없어요</div>'; return; }
-  el.innerHTML=r.members.map(m=>{
-    const pct=m.totalPages>0?Math.min(100,Math.round(m.certPages/m.totalPages*100)):0;
-    return `<div class="mc">
-      <div class="mc-hd">
-        <div class="avatar av-lg">${m.name[0]}</div>
-        <div><div class="mc-name">${m.name}</div><div class="mc-book">${m.bookTitle||'책 미등록'}</div></div>
-      </div>
-      <div style="display:flex;gap:16px;margin-bottom:8px">
-        <div style="text-align:center">
-          <div style="font-size:18px;font-weight:700;color:var(--green)">${m.certPages}</div>
-          <div style="font-size:10px;color:var(--muted)">누계 페이지</div>
+  const el = q('#memberList');
+  el.innerHTML = `<div class="empty"><div class="ei">👥</div>불러오는 중...</div>`;
+  try {
+    const [mSnap, bSnap, cSnap] = await Promise.all([
+      getDocs(collection(db,'members')),
+      getDocs(collection(db,'books')),
+      getDocs(collection(db,'certs')),
+    ]);
+    // 멤버별 책·인증 집계
+    const books  = {}; bSnap.forEach(d => { books[d.data().memberId]  = d.data(); });
+    const certs  = {}; // memberId → { pages, days }
+    cSnap.forEach(d => {
+      const c = d.data();
+      if (!certs[c.memberId]) certs[c.memberId] = { pages:0, days:0 };
+      certs[c.memberId].pages += Number(c.todayPages)||0;
+      certs[c.memberId].days++;
+    });
+    const members = [];
+    mSnap.forEach(d => members.push({ uid: d.id, ...d.data() }));
+    members.sort((a,b) => (certs[b.uid]?.pages||0) - (certs[a.uid]?.pages||0));
+
+    el.innerHTML = members.map(m => {
+      const bk  = books[m.uid];
+      const ct  = certs[m.uid] || { pages:0, days:0 };
+      const tp  = bk?.totalPages || 0;
+      const pct = tp > 0 ? Math.min(100, Math.round(ct.pages/tp*100)) : 0;
+      return `<div class="mc">
+        <div class="mc-hd">
+          <div class="avatar av-lg">${m.name[0]}</div>
+          <div>
+            <div class="mc-name">${esc(m.name)}</div>
+            <div class="mc-book">${bk?esc(bk.title):'책 미등록'}</div>
+          </div>
         </div>
-        <div style="text-align:center">
-          <div style="font-size:18px;font-weight:700;color:var(--green)">${m.certDays}</div>
-          <div style="font-size:10px;color:var(--muted)">인증 일수</div>
+        <div style="display:flex;gap:16px;margin-bottom:8px">
+          <div style="text-align:center">
+            <div style="font-size:18px;font-weight:700;color:var(--green)">${ct.pages}</div>
+            <div style="font-size:10px;color:var(--muted)">누계 페이지</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:18px;font-weight:700;color:var(--green)">${ct.days}</div>
+            <div style="font-size:10px;color:var(--muted)">인증 일수</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:18px;font-weight:700;color:var(--accent)">${pct}%</div>
+            <div style="font-size:10px;color:var(--muted)">진행률</div>
+          </div>
         </div>
-        <div style="text-align:center">
-          <div style="font-size:18px;font-weight:700;color:var(--accent)">${pct}%</div>
-          <div style="font-size:10px;color:var(--muted)">진행률</div>
-        </div>
-      </div>
-      <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
-    </div>`;
-  }).join('');
+        <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="ei">⚠️</div>${e.message}</div>`;
+  }
 }
 
-// ══════════════════════════════════════════
-//  내 책
-// ══════════════════════════════════════════
+// ══ 내 책 ════════════════════════════════════════════════════
 async function loadMyBook() {
-  const r=await GET('getMyBook',{memberId:U.memberId});
-  if (r.success&&r.book) { myBook=r.book; }
+  const snap = await getDocs(
+    query(collection(db,'books'), where('memberId','==',U.uid))
+  );
+  if (!snap.empty) {
+    const d = snap.docs[0];
+    myBook = { bookId: d.id, ...d.data() };
+  }
 }
+
 function renderMyBookPage() {
   if (myBook) {
-    q('#bookView').style.display='block'; q('#bookForm').style.display='none';
-    q('#bkTitle').textContent=myBook.title;
-    q('#bkAuthor').textContent=myBook.author||'';
-    q('#bkPages').textContent=myBook.totalPages;
-    q('#bkCoverImg').src=myBook.coverUrl||'';
-    if (myBook.toc) { q('#bkTocTxt').textContent=myBook.toc; q('#bkTocCard').style.display='block'; }
-    q('#bookSaveBtn').textContent='수정하기';
+    q('#bookView').style.display = 'block';
+    q('#bookForm').style.display = 'none';
+    q('#bkTitle').textContent  = myBook.title;
+    q('#bkAuthor').textContent = myBook.author || '';
+    q('#bkPages').textContent  = myBook.totalPages;
+    q('#bkCoverImg').src       = myBook.coverUrl || '';
+    if (myBook.toc) {
+      q('#bkTocTxt').textContent = myBook.toc;
+      q('#bkTocCard').style.display = 'block';
+    } else {
+      q('#bkTocCard').style.display = 'none';
+    }
+    q('#bookSaveBtn').textContent = '수정하기';
   } else {
-    q('#bookView').style.display='none'; q('#bookForm').style.display='block';
+    q('#bookView').style.display = 'none';
+    q('#bookForm').style.display = 'block';
   }
 }
-function showBookForm() {
-  q('#bookView').style.display='none'; q('#bookForm').style.display='block';
+window.renderMyBookPage = renderMyBookPage;
+
+window.showBookForm = () => {
+  q('#bookView').style.display = 'none';
+  q('#bookForm').style.display = 'block';
   if (myBook) {
-    q('#bTitle').value=myBook.title||''; q('#bAuthor').value=myBook.author||'';
-    q('#bPages').value=myBook.totalPages||''; q('#bCover').value=myBook.coverUrl||'';
-    q('#bToc').value=myBook.toc||''; q('#bookSaveBtn').textContent='수정하기';
+    q('#bTitle').value  = myBook.title      || '';
+    q('#bAuthor').value = myBook.author     || '';
+    q('#bPages').value  = myBook.totalPages || '';
+    q('#bCover').value  = myBook.coverUrl   || '';
+    q('#bToc').value    = myBook.toc        || '';
+    q('#bookSaveBtn').textContent = '수정하기';
   }
-}
-async function saveBook() {
-  const title=q('#bTitle').value.trim(), pages=parseInt(q('#bPages').value);
+};
+
+window.saveBook = async () => {
+  const title = q('#bTitle').value.trim();
+  const pages = parseInt(q('#bPages').value);
   if (!title) { flash('bookAlert','책 제목을 입력해주세요.','e'); return; }
-  if (!pages||pages<1) { flash('bookAlert','페이지 수를 입력해주세요.','e'); return; }
-  setLoad('bookSaveBtn',true,'저장 중...');
+  if (!pages || pages < 1) { flash('bookAlert','페이지 수를 입력해주세요.','e'); return; }
+  setLoad('bookSaveBtn', true, '저장 중...');
   try {
-    const r=await POST({ action:'saveBook', memberId:U.memberId, memberName:U.name,
-      bookId:myBook?myBook.bookId:'', title, author:q('#bAuthor').value.trim(),
-      totalPages:pages, coverUrl:q('#bCover').value.trim(), toc:q('#bToc').value.trim() });
-    if (r.success) { myBook=r.book; flash('bookAlert','저장되었습니다!','o'); renderMyBookPage(); }
-    else flash('bookAlert',r.message,'e');
-  } catch { flash('bookAlert','오류가 발생했습니다.','e'); }
-  finally { setLoad('bookSaveBtn',false,myBook?'수정하기':'책 등록하기'); }
-}
+    const data = {
+      memberId:   U.uid, memberName: U.name,
+      title, author:     q('#bAuthor').value.trim(),
+      totalPages: pages, coverUrl: q('#bCover').value.trim(),
+      toc:        q('#bToc').value.trim(),
+      updatedAt:  serverTimestamp()
+    };
+    if (myBook?.bookId) {
+      await updateDoc(doc(db,'books',myBook.bookId), data);
+      myBook = { ...myBook, ...data };
+    } else {
+      data.createdAt = serverTimestamp();
+      const ref = await addDoc(collection(db,'books'), data);
+      myBook = { bookId: ref.id, ...data };
+    }
+    flash('bookAlert','저장되었습니다! ✓','o');
+    renderMyBookPage();
+    // 홈 책 제목도 갱신
+    q('#homeBook').textContent = myBook.title;
+    q('#certBook').textContent = myBook.title;
+  } catch(e) { flash('bookAlert','오류: '+e.message,'e'); }
+  finally { setLoad('bookSaveBtn', false, myBook ? '수정하기' : '책 등록하기'); }
+};
 
-// ══════════════════════════════════════════
-//  문장 올리기
-// ══════════════════════════════════════════
-function openSentModal() {
+// ══ 문장 올리기 ═══════════════════════════════════════════════
+window.openSentModal = () => {
   if (!myBook) { alert('내 책 탭에서 책을 먼저 등록해주세요!'); return; }
-  selTags=[]; q('#stxt').value=''; q('#spg').value=''; q('#sentAlert').innerHTML='';
-  document.querySelectorAll('.tag').forEach(t=>t.classList.remove('sel'));
+  selTags = [];
+  q('#stxt').value = ''; q('#spg').value = '';
+  q('#sentAlert').innerHTML = '';
+  document.querySelectorAll('.tag').forEach(t => t.classList.remove('sel'));
   openOv('sentOv');
-}
-function toggleTag(btn) {
-  const t=btn.dataset.t;
-  if (selTags.includes(t)) { selTags=selTags.filter(x=>x!==t); btn.classList.remove('sel'); }
-  else { selTags.push(t); btn.classList.add('sel'); }
-}
-async function submitSent() {
-  const txt=q('#stxt').value.trim();
-  if (!txt) { flash('sentAlert','문장을 입력해주세요.','e'); return; }
-  setLoad('sentBtn',true,'올리는 중...');
-  try {
-    const r=await POST({ action:'addSentence', memberId:U.memberId, memberName:U.name,
-      bookId:myBook.bookId, bookTitle:myBook.title,
-      sentence:txt, page:q('#spg').value.trim(), tags:selTags.join(','), date:todayStr() });
-    if (r.success) { closeOv('sentOv'); await goTab('Feed'); }
-    else flash('sentAlert',r.message,'e');
-  } catch { flash('sentAlert','오류가 발생했습니다.','e'); }
-  finally { setLoad('sentBtn',false,'올리기'); }
-}
+};
 
-// ══════════════════════════════════════════
-//  댓글
-// ══════════════════════════════════════════
-async function openCmt(sentenceId, sentText) {
-  curSentId=sentenceId;
-  q('#cmtSentPrev').textContent=sentText;
-  q('#cmtInput').value='';
-  q('#cmtList').innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">불러오는 중...</div>';
+window.toggleTag = btn => {
+  const t = btn.dataset.t;
+  if (selTags.includes(t)) { selTags = selTags.filter(x=>x!==t); btn.classList.remove('sel'); }
+  else { selTags.push(t); btn.classList.add('sel'); }
+};
+
+window.submitSent = async () => {
+  const txt = q('#stxt').value.trim();
+  if (!txt) { flash('sentAlert','문장을 입력해주세요.','e'); return; }
+  setLoad('sentBtn', true, '올리는 중...');
+  try {
+    await addDoc(collection(db,'sentences'), {
+      memberId:   U.uid, memberName: U.name,
+      bookId:     myBook.bookId, bookTitle: myBook.title,
+      sentence:   txt, page: q('#spg').value.trim(),
+      tags:       selTags.join(','), date: todayStr(),
+      createdAt:  serverTimestamp()
+    });
+    closeOv('sentOv');
+    await goTab('Feed');
+  } catch(e) { flash('sentAlert','오류: '+e.message,'e'); }
+  finally { setLoad('sentBtn', false, '올리기'); }
+};
+
+// ══ 댓글 ═════════════════════════════════════════════════════
+window.openCmt = async (sentenceId, sentText) => {
+  curSentId = sentenceId;
+  q('#cmtSentPrev').textContent = sentText;
+  q('#cmtInput').value = '';
+  q('#cmtList').innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">불러오는 중...</div>';
   openOv('cmtOv');
   await loadCmts(sentenceId);
-}
+};
+
 async function loadCmts(sentenceId) {
-  const r=await GET('getComments',{sentenceId});
-  const el=q('#cmtList');
-  if (!r.success||!r.comments.length) {
-    el.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">첫 댓글을 남겨보세요!</div>';
+  const snap = await getDocs(
+    query(collection(db,'sentences',sentenceId,'comments'), orderBy('createdAt','asc'))
+  );
+  const el = q('#cmtList');
+  if (snap.empty) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">첫 댓글을 남겨보세요!</div>';
     return;
   }
-  el.innerHTML=r.comments.map(c=>`
+  const cmts = [];
+  snap.forEach(d => cmts.push(d.data()));
+  el.innerHTML = cmts.map(c => `
     <div class="cmt">
-      <div class="cmt-author">${c.memberName}</div>
+      <div class="cmt-author">${esc(c.memberName)}</div>
       <div class="cmt-text">${esc(c.comment)}</div>
       <div class="cmt-time">${fmtD(c.date)}</div>
     </div>`).join('');
 }
-async function submitCmt() {
-  const txt=q('#cmtInput').value.trim();
+
+window.submitCmt = async () => {
+  const txt = q('#cmtInput').value.trim();
   if (!txt) return;
   try {
-    const r=await POST({ action:'addComment', sentenceId:curSentId,
-      memberId:U.memberId, memberName:U.name, comment:txt, date:todayStr() });
-    if (r.success) { q('#cmtInput').value=''; await loadCmts(curSentId); }
-  } catch { alert('댓글 등록에 실패했습니다.'); }
-}
+    await addDoc(collection(db,'sentences',curSentId,'comments'), {
+      memberId:   U.uid, memberName: U.name,
+      comment:    txt, date: todayStr(),
+      createdAt:  serverTimestamp()
+    });
+    q('#cmtInput').value = '';
+    await loadCmts(curSentId);
+  } catch(e) { alert('댓글 등록 실패: '+e.message); }
+};
 
-// ══════════════════════════════════════════
-//  유틸
-// ══════════════════════════════════════════
-const q=sel=>document.querySelector(sel);
-const todayStr=()=>new Date().toLocaleDateString('sv-SE');
-const fmtD=s=>s?s.slice(5).replace('-','/'):'';
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-const escA=s=>String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;').slice(0,60);
-
-function tagPill(t) {
-  const m={'!':['pb','❗'],'?':['pq','❓'],'"':['pqt','💬'],'@':['pa','✨']};
-  const [cls,icon]=m[t]||['',''];
-  return `<span class="pill ${cls}">${icon}</span>`;
-}
-function flash(id,msg,type) {
-  const el=q(`#${id}`);
-  el.innerHTML=`<div class="alert ${type==='e'?'ae':'ao'}">${msg}</div>`;
-  if(type!=='o') setTimeout(()=>{el.innerHTML='';},5000);
-}
-function setLoad(id,on,txt) {
-  const b=q(`#${id}`); b.disabled=on;
-  if(txt) b.innerHTML=on?`<span class="spin"></span>${txt}`:txt;
-}
-function openOv(id)  { q(`#${id}`).classList.add('on'); }
-function closeOv(id) { q(`#${id}`).classList.remove('on'); }
-document.querySelectorAll('.ov').forEach(ov=>{
-  ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('on');});
+// ── 오버레이 닫기 ─────────────────────────────────────────────
+document.querySelectorAll('.ov').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('on'); });
 });
 </script>
 </body>
