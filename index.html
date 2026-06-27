@@ -1,1003 +1,662 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>비북스 독서 챌린지</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --green:  #1a4a2e;
-      --green2: #255c3a;
-      --accent: #3aaa6a;
-      --bg:     #f7f8f5;
-      --white:  #ffffff;
-      --text:   #1c2b22;
-      --muted:  #6b7c72;
-      --border: #dce5de;
-      --t-bang:  #f59e0b;
-      --t-q:     #3b82f6;
-      --t-quote: #8b5cf6;
-      --t-apply: #ec4899;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Noto Sans KR', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      max-width: 480px;
-      margin: 0 auto;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>하루 10페이지 챌린지 — 비북스</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --green-dark: #2D5016;
+  --green-mid: #3B6D11;
+  --green-light: #EAF3DE;
+  --green-soft: #C0DD97;
+  --accent: #639922;
+  --bg: #f8f6f1;
+  --card: #ffffff;
+  --text: #1a1a1a;
+  --text-sub: #5a5a5a;
+  --border: #e0ddd5;
+  --radius: 12px;
+}
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
 
-    /* ── 화면 ─────────────────────────────── */
-    .screen { display: none; min-height: 100vh; padding-bottom: 72px; }
-    .screen.on { display: block; }
+header { background: var(--green-dark); color: white; padding: 20px 20px 16px; text-align: center; }
+header .subtitle { font-size: 12px; opacity: 0.7; margin-bottom: 4px; letter-spacing: 0.05em; }
+header h1 { font-size: 20px; font-weight: 700; }
+header .month-badge { display: inline-block; margin-top: 8px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 14px; font-size: 13px; }
 
-    /* ── 로그인 ───────────────────────────── */
-    #loginScreen {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      min-height: 100vh; padding: 32px 24px;
-      background: var(--green);
-    }
-    .login-logo { text-align: center; margin-bottom: 36px; }
-    .login-logo .em { font-size: 52px; display: block; margin-bottom: 10px; }
-    .login-logo h1 {
-      font-family: 'Noto Serif KR', serif;
-      font-size: 24px; color: white; margin-bottom: 6px;
-    }
-    .login-logo p { font-size: 13px; color: rgba(255,255,255,.6); line-height: 1.6; }
-    .login-box { width: 100%; background: white; border-radius: 16px; padding: 28px 22px; }
+.tab-bar { display: flex; background: white; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+.tab-bar button { flex: 1; padding: 13px 0; border: none; background: none; font-family: inherit; font-size: 14px; color: var(--text-sub); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab-bar button.active { color: var(--green-dark); border-bottom-color: var(--green-dark); font-weight: 500; }
 
-    /* ── 공통 폼 ──────────────────────────── */
-    .fg { margin-bottom: 13px; }
-    .fg label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 5px; }
-    .fg input, .fg textarea, .fg select {
-      width: 100%; padding: 11px 13px;
-      border: 1px solid var(--border); border-radius: 8px;
-      font-size: 15px; font-family: inherit; color: var(--text);
-      outline: none; transition: border-color .15s; background: white;
-    }
-    .fg input:focus, .fg textarea:focus { border-color: var(--accent); }
-    .fg textarea { resize: vertical; min-height: 80px; line-height: 1.7; }
+.view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
+.view.active { display: block; }
 
-    /* ── 버튼 ─────────────────────────────── */
-    .btn {
-      width: 100%; padding: 13px; border: none; border-radius: 10px;
-      font-size: 15px; font-weight: 700; cursor: pointer;
-      font-family: inherit; transition: opacity .15s;
-    }
-    .btn:hover { opacity: .87; }
-    .btn:disabled { opacity: .55; cursor: not-allowed; }
-    .btn-green  { background: var(--green); color: white; }
-    .btn-ghost  { background: white; color: var(--text); border: 1px solid var(--border); }
-    .btn-sm     { padding: 8px 14px; font-size: 13px; width: auto; }
-    .text-btn {
-      background: none; border: none; color: var(--accent);
-      font-size: 13px; cursor: pointer; font-family: inherit;
-      padding: 10px 0; text-align: center; width: 100%; display: block;
-    }
+.card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
 
-    /* ── 탑바 ─────────────────────────────── */
-    .topbar {
-      position: sticky; top: 0; background: white;
-      border-bottom: 1px solid var(--border);
-      padding: 13px 18px;
-      display: flex; align-items: center; justify-content: space-between;
-      z-index: 50;
-    }
-    .topbar-title {
-      font-family: 'Noto Serif KR', serif;
-      font-size: 17px; font-weight: 700; color: var(--green);
-    }
-    .topbar-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.participant-card { display: flex; align-items: flex-start; gap: 14px; }
+.avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--green-light); color: var(--green-dark); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+.participant-info { flex: 1; min-width: 0; }
+.participant-name { font-size: 15px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.badge-success { font-size: 10px; background: var(--green-light); color: var(--green-mid); padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.participant-book { font-size: 12px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.check-count { font-size: 13px; color: var(--text-sub); margin-top: 6px; }
+.check-count strong { color: var(--green-dark); font-size: 16px; }
 
-    /* ── 하단 네비 ────────────────────────── */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 480px;
-      background: white; border-top: 1px solid var(--border);
-      display: flex; z-index: 100;
-    }
-    .nav-item {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; padding: 10px 4px 8px;
-      border: none; background: none; cursor: pointer;
-      font-family: inherit; gap: 3px; color: var(--muted); transition: color .15s;
-    }
-    .nav-item.active { color: var(--green); }
-    .nav-item .ni { font-size: 22px; }
-    .nav-item .nl { font-size: 10px; font-weight: 700; }
-    .nav-add {
-      flex: 1; display: flex; align-items: center;
-      justify-content: center; border: none; background: none; cursor: pointer; padding: 8px;
-    }
-    .nav-add .add-c {
-      width: 46px; height: 46px;
-      background: var(--green); border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 26px; color: white; margin-top: -16px;
-      box-shadow: 0 4px 18px rgba(26,74,46,.35);
-    }
+.mini-calendar { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 10px; }
+.mini-calendar .day { width: 18px; height: 18px; border-radius: 4px; background: #f0ede6; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #aaa; }
+.mini-calendar .day.checked { background: var(--green-mid); color: white; }
+.mini-calendar .day.today { border: 1.5px solid var(--accent); }
+.mini-calendar .day.future { background: #f9f7f3; color: #ddd; }
 
-    /* ── 카드 ─────────────────────────────── */
-    .card {
-      background: white; border-radius: 14px;
-      border: 1px solid var(--border); padding: 18px; margin-bottom: 12px;
-    }
-    .sp { padding: 16px; }
+.section-title { font-size: 13px; font-weight: 500; color: var(--text-sub); margin-bottom: 12px; letter-spacing: 0.03em; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-sub); font-size: 14px; }
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; }
 
-    /* ── 진행바 ───────────────────────────── */
-    .pbar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 8px; }
-    .pfill { height: 100%; background: var(--accent); border-radius: 4px; transition: width .4s ease; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--text-sub); margin-bottom: 6px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 8px;
+  font-family: inherit; font-size: 15px; background: white; color: var(--text); outline: none; transition: border-color 0.15s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--green-mid); }
+.form-group textarea { resize: none; line-height: 1.6; }
+.form-group .hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+.required-mark { color: var(--accent); }
 
-    /* ── 태그 ─────────────────────────────── */
-    .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-    .tag {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 6px 13px; border-radius: 20px; font-size: 13px; font-weight: 700;
-      cursor: pointer; border: 2px solid var(--border);
-      background: var(--bg); color: var(--muted); transition: all .15s;
-      font-family: inherit;
-    }
-    .tag.sel { color: white; border-color: transparent; }
-    .tag.sel.tb { background: var(--t-bang); }
-    .tag.sel.tq { background: var(--t-q); }
-    .tag.sel.tqt { background: var(--t-quote); }
-    .tag.sel.ta { background: var(--t-apply); }
-    .pill {
-      display: inline-flex; align-items: center; gap: 3px;
-      padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 700; color: white;
-    }
-    .pb { background: var(--t-bang); }
-    .pq { background: var(--t-q); }
-    .pqt { background: var(--t-quote); }
-    .pa { background: var(--t-apply); }
+.btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity 0.15s; }
+.btn:active { opacity: 0.8; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary { background: var(--green-dark); color: white; }
+.btn-outline { background: white; border: 1.5px solid var(--green-dark); color: var(--green-dark); margin-top: 10px; }
+.btn-danger { background: #c0392b; color: white; }
+.btn-sm { padding: 7px 14px; font-size: 13px; width: auto; border-radius: 8px; }
 
-    /* ── 피드 카드 ────────────────────────── */
-    .sc {
-      background: white; border: 1px solid var(--border);
-      border-radius: 14px; padding: 18px; margin-bottom: 12px;
-    }
-    .sc-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-    .avatar {
-      width: 36px; height: 36px; background: var(--green);
-      border-radius: 50%; display: flex; align-items: center;
-      justify-content: center; color: white; font-size: 14px;
-      font-weight: 700; flex-shrink: 0;
-    }
-    .av-lg { width: 40px; height: 40px; font-size: 15px; }
-    .sc-name { font-size: 13px; font-weight: 700; color: var(--green); }
-    .sc-book { font-size: 11px; color: var(--muted); }
-    .sc-sent {
-      font-family: 'Noto Serif KR', serif; font-size: 15px;
-      line-height: 1.85; color: var(--text);
-      border-left: 3px solid var(--accent);
-      padding-left: 13px; margin-bottom: 8px;
-    }
-    .sc-pg { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
-    .cmt-btn {
-      background: none; border: none; font-size: 12px;
-      color: var(--muted); cursor: pointer; font-family: inherit;
-      display: inline-flex; align-items: center; gap: 4px;
-    }
+.success-banner { display: none; background: var(--green-light); border: 1px solid var(--green-soft); border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 20px; }
+.success-banner.show { display: block; }
+.success-banner .emoji { font-size: 36px; margin-bottom: 8px; }
+.success-banner p { font-size: 15px; font-weight: 500; color: var(--green-dark); }
+.success-banner small { font-size: 13px; color: var(--green-mid); }
 
-    /* ── 모달 (바텀시트) ──────────────────── */
-    .ov {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.5); z-index: 200;
-      align-items: flex-end; justify-content: center;
-    }
-    .ov.on { display: flex; }
-    .msheet {
-      background: white; border-radius: 20px 20px 0 0;
-      padding: 20px; width: 100%; max-width: 480px;
-      max-height: 90vh; overflow-y: auto;
-      animation: slideUp .25s ease;
-    }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .mhandle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 18px; }
-    .mtitle { font-family: 'Noto Serif KR', serif; font-size: 18px; font-weight: 700; color: var(--green); margin-bottom: 16px; }
+.today-status { background: var(--green-light); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--green-dark); margin-bottom: 16px; display: none; line-height: 1.6; }
+.today-status.show { display: block; }
 
-    /* ── 댓글 ─────────────────────────────── */
-    .cmt { padding: 11px 0; border-bottom: 1px solid var(--border); }
-    .cmt:last-child { border-bottom: none; }
-    .cmt-author { font-size: 12px; font-weight: 700; color: var(--green); margin-bottom: 3px; }
-    .cmt-text { font-size: 13px; line-height: 1.65; }
-    .cmt-time { font-size: 11px; color: var(--muted); margin-top: 3px; }
-    .cmt-irow { display: flex; gap: 8px; margin-top: 12px; }
-    .cmt-irow input {
-      flex: 1; padding: 10px 13px;
-      border: 1px solid var(--border); border-radius: 24px;
-      font-size: 14px; font-family: inherit; outline: none;
-    }
-    .cmt-irow input:focus { border-color: var(--accent); }
-    .cmt-send {
-      background: var(--green); color: white; border: none;
-      border-radius: 50%; width: 40px; height: 40px;
-      font-size: 16px; cursor: pointer; flex-shrink: 0;
-    }
+.stat-row { display: flex; gap: 10px; margin-bottom: 20px; }
+.stat-box { flex: 1; background: var(--green-light); border-radius: 10px; padding: 14px 10px; text-align: center; }
+.stat-box .num { font-size: 26px; font-weight: 700; color: var(--green-dark); }
+.stat-box .label { font-size: 11px; color: var(--green-mid); margin-top: 2px; }
 
-    /* ── 멤버카드 ─────────────────────────── */
-    .mc { background: white; border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; margin-bottom: 10px; }
-    .mc-hd { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-    .mc-name { font-size: 15px; font-weight: 700; color: var(--green); }
-    .mc-book { font-size: 12px; color: var(--muted); }
+.checkin-list { }
+.checkin-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.checkin-item:last-child { border-bottom: none; }
+.checkin-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.checkin-nick { font-size: 13px; font-weight: 500; }
+.checkin-time { font-size: 11px; color: #bbb; margin-left: auto; }
+.checkin-quote { font-size: 13px; color: var(--text-sub); line-height: 1.6; padding-left: 10px; border-left: 2px solid var(--green-soft); }
 
-    /* ── 기타 ─────────────────────────────── */
-    .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
-    .ei { font-size: 40px; margin-bottom: 12px; }
-    .alert { padding: 10px 13px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
-    .ae { background: #fee2e2; color: #991b1b; }
-    .ao { background: #dcfce7; color: #166534; }
-    .badge {
-      display: inline-block; background: var(--green); color: white;
-      border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700;
-    }
-    .cert-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 0; border-bottom: 1px solid var(--border);
-    }
-    .cert-row:last-child { border-bottom: none; }
-    .spin {
-      display: inline-block; width: 13px; height: 13px;
-      border: 2px solid rgba(255,255,255,.3); border-top-color: white;
-      border-radius: 50%; animation: rot .6s linear infinite;
-      vertical-align: middle; margin-right: 4px;
-    }
-    @keyframes rot { to { transform: rotate(360deg); } }
-  </style>
+.loading { text-align: center; padding: 30px; color: var(--text-sub); font-size: 14px; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--green-soft); border-top-color: var(--green-dark); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-banner { background: #fdf0f0; border: 1px solid #f5c0c0; border-radius: var(--radius); padding: 14px; font-size: 13px; color: #8b2020; margin-bottom: 16px; line-height: 1.6; }
+
+/* 어드민 */
+.admin-lock { text-align: center; padding: 40px 0 20px; }
+.admin-lock .lock-icon { font-size: 40px; margin-bottom: 12px; }
+.participant-admin-card { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.participant-admin-card:last-child { border-bottom: none; }
+.tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 8px; font-weight: 500; }
+.tag-green { background: var(--green-light); color: var(--green-mid); }
+.tag-gray { background: #f0ede6; color: #888; }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.show { display: flex; }
+.modal { background: white; border-radius: var(--radius); padding: 24px; width: 100%; max-width: 380px; }
+.modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.modal-actions button { flex: 1; }
+
+/* Firebase 설정 화면 */
+.setup-screen { padding: 24px 20px; max-width: 480px; margin: 0 auto; }
+.setup-screen h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.setup-screen p { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.6; }
+.code-block { background: #f4f2ed; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; color: #444; margin-bottom: 16px; line-height: 1.8; word-break: break-all; }
+</style>
 </head>
 <body>
 
-<!-- ══════ 로그인 ══════ -->
-<div id="loginScreen">
-  <div class="login-logo">
-    <span class="em">📚</span>
-    <h1>비북스 독서 챌린지</h1>
-    <p>매일 30페이지<br>한 달에 책 두 권, 리뷰 두 개</p>
-  </div>
-  <div class="login-box">
-    <div id="loginAlert"></div>
-
-    <div id="loginForm">
-      <div class="fg"><label>이름</label>
-        <input id="lName" type="text" placeholder="이름 입력" /></div>
-      <div class="fg"><label>비밀번호</label>
-        <input id="lPw" type="password" placeholder="비밀번호 입력"
-          onkeydown="if(event.key==='Enter')doLogin()" /></div>
-      <button class="btn btn-green" id="loginBtn" onclick="doLogin()">로그인</button>
-      <button class="text-btn" onclick="showSignup()">처음이세요? 멤버 신청하기 →</button>
+<!-- Firebase 설정 미완료 시 안내 화면 -->
+<div id="setupScreen" style="display:none">
+  <header>
+    <div class="subtitle">비북스 독서 챌린지</div>
+    <h1>초기 설정 필요 📋</h1>
+  </header>
+  <div class="setup-screen">
+    <h2>Firebase 연결이 필요해요</h2>
+    <p>이 파일 상단의 <code style="background:#f0ede6;padding:2px 6px;border-radius:4px">FIREBASE_CONFIG</code> 값을 Firebase 콘솔에서 복사해 넣어주세요.</p>
+    <div class="code-block">
+// 이 파일 상단 &lt;script&gt; 안에서<br>
+// FIREBASE_CONFIG 객체를 채워주세요:<br><br>
+const FIREBASE_CONFIG = {<br>
+&nbsp;&nbsp;apiKey: "여기에 붙여넣기",<br>
+&nbsp;&nbsp;authDomain: "...",<br>
+&nbsp;&nbsp;projectId: "...",<br>
+&nbsp;&nbsp;...<br>
+};
     </div>
-
-    <div id="signupForm" style="display:none">
-      <div class="fg"><label>이름</label>
-        <input id="sName" type="text" placeholder="이름 입력" /></div>
-      <div class="fg"><label>비밀번호</label>
-        <input id="sPw" type="password" placeholder="비밀번호 설정 (4자리 이상)" /></div>
-      <div class="fg"><label>읽을 책 제목 <span style="font-weight:400;color:var(--muted)">(나중에 등록 가능)</span></label>
-        <input id="sBook" type="text" placeholder="읽을 책 제목" /></div>
-      <button class="btn btn-green" id="signupBtn" onclick="doSignup()">멤버 신청하기</button>
-      <button class="text-btn" onclick="showLogin()">← 이미 멤버라면? 로그인</button>
+    <p><strong>Firebase 콘솔 → 프로젝트 설정 → 앱 추가(웹) → SDK 설정</strong>에서 firebaseConfig 값을 복사하세요.</p>
+    <p style="margin-top:12px"><strong>Authentication → 로그인 방법 → 익명(Anonymous)</strong>을 사용 설정하세요.</p>
+    <p style="margin-top:12px">Firestore Database도 생성하고, 규칙을 아래로 설정해주세요:</p>
+    <div class="code-block">
+rules_version = '2';<br>
+service cloud.firestore {<br>
+&nbsp;&nbsp;match /databases/{database}/documents {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;match /{document=**} {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow read, write: if request.auth != null;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;}<br>
+}
     </div>
+    <p style="font-size:12px;color:#aaa">익명 로그인된 사용자만 읽기/쓰기 가능 — 완전 공개보다 안전합니다.</p>
   </div>
 </div>
 
-<!-- ══════ 앱 ══════ -->
-<div id="appWrap" style="display:none">
+<!-- 메인 앱 -->
+<div id="app" style="display:none">
+  <header>
+    <div class="subtitle">비북스 독서 챌린지</div>
+    <h1>하루 10페이지 📖</h1>
+    <div class="month-badge" id="monthBadge"></div>
+  </header>
 
-  <!-- ── 홈 ── -->
-  <div class="screen on" id="scHome">
-    <div class="topbar">
-      <div>
-        <div class="topbar-title">📚 비북스 챌린지</div>
-        <div class="topbar-sub" id="homeGreet"></div>
-      </div>
-      <button class="btn btn-ghost btn-sm" onclick="doLogout()">로그아웃</button>
+  <div class="tab-bar">
+    <button class="active" onclick="showView('home')">현황</button>
+    <button onclick="showView('checkin')">오늘 인증</button>
+    <button onclick="showView('admin')">어드민</button>
+  </div>
+
+  <!-- 현황 -->
+  <div id="view-home" class="view active">
+    <div class="stat-row" id="statRow">
+      <div class="stat-box"><div class="num">-</div><div class="label">참여자</div></div>
+      <div class="stat-box"><div class="num">-</div><div class="label">오늘 인증</div></div>
+      <div class="stat-box"><div class="num">-</div><div class="label">총 인증 수</div></div>
     </div>
-    <div class="sp">
+    <div class="section-title">이번 달 참여자</div>
+    <div id="participantList"><div class="loading"><span class="spinner"></span>불러오는 중...</div></div>
+  </div>
+
+  <!-- 인증 -->
+  <div id="view-checkin" class="view">
+    <div class="success-banner" id="successBanner">
+      <div class="emoji">🎉</div>
+      <p>오늘도 10페이지 완료!</p>
+      <small id="successMsg"></small>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label>닉네임 선택</label>
+        <select id="checkinNick"><option value="">-- 닉네임 선택 --</option></select>
+      </div>
+      <div class="form-group">
+        <label>PIN 번호</label>
+        <input type="password" id="checkinPin" maxlength="4" placeholder="4자리 숫자" inputmode="numeric">
+      </div>
+      <div class="today-status" id="todayStatus"></div>
+      <div class="form-group">
+        <label>오늘의 필사 <span class="required-mark">*</span></label>
+        <textarea id="checkinQuote" rows="3" maxlength="150" placeholder="오늘 읽은 내용 중 마음에 든 문장을 한 줄 적어주세요"></textarea>
+        <div class="hint">실제로 책을 읽어야 쓸 수 있어요. 최대 150자</div>
+      </div>
+      <button class="btn btn-primary" id="checkinBtn" onclick="doCheckin()">오늘 읽었어요 ✅</button>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="section-title">오늘의 필사 모음</div>
+      <div class="checkin-list" id="todayCheckinList"><div class="loading"><span class="spinner"></span></div></div>
+    </div>
+  </div>
+
+  <!-- 어드민 -->
+  <div id="view-admin" class="view">
+    <div id="adminLock">
+      <div class="admin-lock">
+        <div class="lock-icon">🔒</div>
+        <p style="font-size:14px;color:var(--text-sub);margin-bottom:16px">어드민 비밀번호를 입력하세요</p>
+      </div>
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
-          <div>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:3px">내 책</div>
-            <div style="font-size:15px;font-weight:700;color:var(--green)" id="homeBook">책을 등록해주세요</div>
-          </div>
-          <span id="todayBadge"></span>
+        <div class="form-group">
+          <input type="password" id="adminPwInput" placeholder="비밀번호" onkeydown="if(event.key==='Enter')checkAdminPw()">
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:12px">
-          <div>
-            <div style="font-size:22px;font-weight:700;color:var(--green)" id="hTotal">0</div>
-            <div style="font-size:10px;color:var(--muted)">누계 페이지</div>
-          </div>
-          <div>
-            <div style="font-size:22px;font-weight:700;color:var(--green)" id="hDays">0</div>
-            <div style="font-size:10px;color:var(--muted)">인증 일수</div>
-          </div>
-          <div>
-            <div style="font-size:22px;font-weight:700;color:var(--accent)" id="hPct">0%</div>
-            <div style="font-size:10px;color:var(--muted)">진행률</div>
-          </div>
-        </div>
-        <div class="pbar"><div class="pfill" id="hBar" style="width:0%"></div></div>
+        <button class="btn btn-primary" onclick="checkAdminPw()">입장</button>
       </div>
-
-      <div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">오늘의 인증 현황</div>
-      <div id="todayList"></div>
     </div>
-  </div>
-
-  <!-- ── 피드 ── -->
-  <div class="screen" id="scFeed">
-    <div class="topbar"><div class="topbar-title">💬 문장 피드</div></div>
-    <div class="sp" id="feedList">
-      <div class="empty"><div class="ei">💬</div>아직 공유된 문장이 없어요</div>
-    </div>
-  </div>
-
-  <!-- ── 인증 ── -->
-  <div class="screen" id="scCert">
-    <div class="topbar"><div class="topbar-title">✅ 오늘 인증</div></div>
-    <div class="sp">
-      <div id="certAlert"></div>
+    <div id="adminPanel" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span style="font-size:14px;font-weight:500">참여자 관리</span>
+        <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ 참여자 추가</button>
+      </div>
       <div class="card">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:3px" id="certDate"></div>
-        <div style="font-size:15px;font-weight:700;color:var(--green);margin-bottom:16px" id="certBook">책을 먼저 등록해주세요</div>
-        <div class="fg"><label>오늘 읽은 페이지 수</label>
-          <input type="number" id="certPages" placeholder="예: 30" min="1" /></div>
-        <div class="fg"><label>한마디 <span style="font-weight:400;color:var(--muted)">(선택)</span></label>
-          <input type="text" id="certMemo" placeholder="오늘 독서 한마디" /></div>
-        <button class="btn btn-green" id="certBtn" onclick="submitCert()">인증하기 ✅</button>
+        <div id="adminParticipantList"><div class="loading"><span class="spinner"></span></div></div>
       </div>
-      <div style="font-size:13px;font-weight:700;color:var(--green);margin:4px 0 10px">최근 인증 내역</div>
-      <div class="card" id="certHist"></div>
-    </div>
-  </div>
-
-  <!-- ── 멤버 ── -->
-  <div class="screen" id="scMembers">
-    <div class="topbar"><div class="topbar-title">👥 멤버</div></div>
-    <div class="sp" id="memberList"></div>
-  </div>
-
-  <!-- ── 내 책 ── -->
-  <div class="screen" id="scMyBook">
-    <div class="topbar"><div class="topbar-title">📖 내 책</div></div>
-    <div class="sp">
-      <div id="bookAlert"></div>
-
-      <div id="bookView" style="display:none">
-        <div class="card">
-          <div style="display:flex;gap:14px;align-items:flex-start">
-            <img id="bkCoverImg" src="" alt="표지"
-              style="width:68px;height:98px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0"
-              onerror="this.style.display='none'" />
-            <div style="flex:1">
-              <div style="font-size:17px;font-weight:700;color:var(--green);margin-bottom:4px" id="bkTitle"></div>
-              <div style="font-size:13px;color:var(--muted);margin-bottom:8px" id="bkAuthor"></div>
-              <div style="font-size:12px;color:var(--muted)">총 <strong id="bkPages" style="color:var(--green)"></strong>페이지</div>
-            </div>
-          </div>
-        </div>
-        <div class="card" id="bkTocCard" style="display:none">
-          <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">목차 / 서문</div>
-          <div style="font-size:13px;color:var(--text);line-height:1.85;white-space:pre-wrap" id="bkTocTxt"></div>
-        </div>
-        <button class="btn btn-ghost" onclick="showBookForm()">책 정보 수정</button>
+      <div style="margin-top:24px;margin-bottom:12px">
+        <div class="section-title">전체 필사 기록</div>
       </div>
-
-      <div id="bookForm">
-        <div class="card">
-          <div class="fg"><label>책 제목 *</label>
-            <input id="bTitle" type="text" placeholder="책 제목" /></div>
-          <div class="fg"><label>저자</label>
-            <input id="bAuthor" type="text" placeholder="저자명" /></div>
-          <div class="fg"><label>총 페이지 수 *</label>
-            <input id="bPages" type="number" placeholder="예: 300" min="1" /></div>
-          <div class="fg"><label>표지 이미지 URL <span style="font-weight:400;color:var(--muted)">(선택)</span></label>
-            <input id="bCover" type="url" placeholder="https://..." /></div>
-          <div class="fg"><label>목차 / 서문 <span style="font-weight:400;color:var(--muted)">(선택)</span></label>
-            <textarea id="bToc" placeholder="목차나 서문을 자유롭게 입력해주세요" rows="5"></textarea></div>
-          <button class="btn btn-green" id="bookSaveBtn" onclick="saveBook()">책 등록하기</button>
-        </div>
+      <div class="card">
+        <div class="checkin-list" id="adminCheckinList"><div class="loading"><span class="spinner"></span></div></div>
       </div>
-    </div>
-  </div>
-
-  <!-- 하단 네비 -->
-  <nav class="bottom-nav">
-    <button class="nav-item active" data-sc="Home" onclick="goTab('Home')">
-      <span class="ni">🏠</span><span class="nl">홈</span>
-    </button>
-    <button class="nav-item" data-sc="Feed" onclick="goTab('Feed')">
-      <span class="ni">💬</span><span class="nl">피드</span>
-    </button>
-    <button class="nav-add" onclick="openSentModal()">
-      <div class="add-c">+</div>
-    </button>
-    <button class="nav-item" data-sc="Cert" onclick="goTab('Cert')">
-      <span class="ni">✅</span><span class="nl">인증</span>
-    </button>
-    <button class="nav-item" data-sc="MyBook" onclick="goTab('MyBook')">
-      <span class="ni">📖</span><span class="nl">내 책</span>
-    </button>
-  </nav>
-</div>
-
-<!-- ══════ 모달: 문장 올리기 ══════ -->
-<div class="ov" id="sentOv">
-  <div class="msheet">
-    <div class="mhandle"></div>
-    <div class="mtitle">문장 올리기</div>
-    <div id="sentAlert"></div>
-    <div class="fg"><label>인상 깊은 문장</label>
-      <textarea id="stxt" rows="4" placeholder="책에서 마음에 걸린 문장을 적어주세요"></textarea></div>
-    <div class="fg"><label>페이지</label>
-      <input type="number" id="spg" placeholder="예: 47" /></div>
-    <div class="fg">
-      <label>태그 <span style="font-weight:400;color:var(--muted)">(복수 선택 가능)</span></label>
-      <div class="tag-row">
-        <button class="tag tb" data-t="!" onclick="toggleTag(this)">❗ 느낌표</button>
-        <button class="tag tq" data-t="?" onclick="toggleTag(this)">❓ 물음표</button>
-        <button class="tag tqt" data-t='"' onclick="toggleTag(this)">💬 인용</button>
-        <button class="tag ta"  data-t="@" onclick="toggleTag(this)">✨ 적용</button>
+      <div style="margin-top:20px">
+        <button class="btn btn-outline" onclick="lockAdmin()">어드민 잠금</button>
       </div>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeOv('sentOv')">취소</button>
-      <button class="btn btn-green" style="flex:2" id="sentBtn" onclick="submitSent()">올리기</button>
     </div>
   </div>
 </div>
 
-<!-- ══════ 모달: 댓글 ══════ -->
-<div class="ov" id="cmtOv">
-  <div class="msheet">
-    <div class="mhandle"></div>
-    <div id="cmtSentPrev" style="font-family:'Noto Serif KR',serif;font-size:14px;line-height:1.85;color:var(--text);border-left:3px solid var(--accent);padding-left:13px;margin-bottom:16px"></div>
-    <div class="card" style="padding:0;overflow:hidden">
-      <div id="cmtList" style="padding:4px 16px"></div>
+<!-- 참여자 추가 모달 -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>참여자 추가</h3>
+    <div class="form-group">
+      <label>닉네임</label>
+      <input type="text" id="addNick" maxlength="8" placeholder="예: 책읽는곰">
     </div>
-    <div class="cmt-irow">
-      <input type="text" id="cmtInput" placeholder="댓글을 입력하세요"
-        onkeydown="if(event.key==='Enter')submitCmt()" />
-      <button class="cmt-send" onclick="submitCmt()">↑</button>
+    <div class="form-group">
+      <label>PIN 번호</label>
+      <input type="text" id="addPin" maxlength="4" placeholder="숫자 4자리" inputmode="numeric">
+      <div class="hint">참여자에게 알려주세요</div>
+    </div>
+    <div class="form-group">
+      <label>읽을 책 <span style="font-weight:400;color:#bbb">(선택)</span></label>
+      <input type="text" id="addBook" maxlength="40" placeholder="책 제목">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddModal()">취소</button>
+      <button class="btn btn-primary" id="addBtn" onclick="doAddParticipant()">추가</button>
     </div>
   </div>
 </div>
+
+<!-- ✅ Firebase config를 여기에 채워주세요 -->
+<script>
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC0rkEaYEXQ_16oP-uZOBlFj2HPJbJEnbY",
+  authDomain: "page-57b5a.firebaseapp.com",
+  projectId: "page-57b5a",
+  storageBucket: "page-57b5a.firebasestorage.app",
+  messagingSenderId: "208257314099",
+  appId: "1:208257314099:web:fb7d6b79d7f6a7c8fd2246"
+};
+</script>
 
 <script type="module">
-// ══════════════════════════════════════════════════════════════
-//  📚 비북스 독서 챌린지 — Firebase Firestore 연동
-// ══════════════════════════════════════════════════════════════
-import { initializeApp }                        from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
-import { getFirestore, collection, doc,
-         addDoc, updateDoc, setDoc,
-         getDoc, getDocs, query,
-         where, orderBy, limit,
-         onSnapshot, serverTimestamp }           from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, deleteDoc, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// ── Firebase 설정 ─────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey:            'AIzaSyAJs3ouLWFUwls7UcnSoBirUXJOFVC1H8U',
-  authDomain:        'bbooks-challenge.firebaseapp.com',
-  projectId:         'bbooks-challenge',
-  storageBucket:     'bbooks-challenge.firebasestorage.app',
-  messagingSenderId: '1002103298667',
-  appId:             '1:1002103298667:web:ecfd3366692134efe02f2e'
-};
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const ADMIN_PW = 'bbooks2024';
+const SUCCESS_THRESHOLD = 20;
 
-// ── 상태 ──────────────────────────────────────────────────────
-let U       = null;   // 로그인 유저 { uid, name, memberId }
-let myBook  = null;   // 내 책 데이터
-let selTags = [];
-let curSentId = null;
-
-// ── 유틸 ──────────────────────────────────────────────────────
-const q       = sel => document.querySelector(sel);
-const todayStr= () => new Date().toLocaleDateString('sv-SE');
-const fmtD    = s  => s ? s.slice(5).replace('-', '/') : '';
-const esc     = s  => String(s)
-  .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-  .replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-const escA    = s  => String(s).replace(/'/g,"&#39;").replace(/"/g,'&quot;').slice(0,60);
-
-function tagPill(t) {
-  const m = { '!':['pb','❗'], '?':['pq','❓'], '"':['pqt','💬'], '@':['pa','✨'] };
-  const [cls, icon] = m[t] || ['', ''];
-  return `<span class="pill ${cls}">${icon}</span>`;
+// Firebase 설정 확인
+const cfg = window.FIREBASE_CONFIG || {};
+if (!cfg.apiKey) {
+  document.getElementById('setupScreen').style.display = 'block';
+  throw new Error('Firebase config not set');
 }
-function flash(id, msg, type) {
-  const el = q(`#${id}`);
-  if (!el) return;
-  el.innerHTML = `<div class="alert ${type==='e'?'ae':'ao'}">${msg}</div>`;
-  if (type !== 'o') setTimeout(() => { el.innerHTML = ''; }, 5000);
-}
-function setLoad(id, on, txt) {
-  const b = q(`#${id}`);
-  if (!b) return;
-  b.disabled = on;
-  if (txt) b.innerHTML = on ? `<span class="spin"></span>${txt}` : txt;
-}
-function openOv(id)  { q(`#${id}`)?.classList.add('on'); }
-function closeOv(id) { q(`#${id}`)?.classList.remove('on'); }
+document.getElementById('app').style.display = 'block';
 
-// ── 로그인 / 회원가입 전환 ────────────────────────────────────
-window.showSignup = () => {
-  q('#loginForm').style.display  = 'none';
-  q('#signupForm').style.display = 'block';
-  q('#loginAlert').innerHTML = '';
-};
-window.showLogin = () => {
-  q('#signupForm').style.display = 'none';
-  q('#loginForm').style.display  = 'block';
-  q('#loginAlert').innerHTML = '';
-};
+const app = initializeApp(cfg);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-// ── 로그인 ────────────────────────────────────────────────────
-window.doLogin = async () => {
-  const name = q('#lName').value.trim();
-  const pw   = q('#lPw').value.trim();
-  if (!name || !pw) { flash('loginAlert','이름과 비밀번호를 입력해주세요.','e'); return; }
-  setLoad('loginBtn', true, '로그인 중...');
-  try {
-    const snap = await getDocs(
-      query(collection(db, 'members'), where('name','==',name))
-    );
-    if (snap.empty) { flash('loginAlert','등록된 멤버가 아닙니다.','e'); return; }
-    const docData = snap.docs[0];
-    const m = docData.data();
-    if (m.password !== pw) { flash('loginAlert','비밀번호가 틀렸습니다.','e'); return; }
-    U = { uid: docData.id, name: m.name, memberId: docData.id };
-    // 로그인 시각 업데이트
-    await updateDoc(doc(db, 'members', docData.id), { lastLogin: serverTimestamp() });
-    await initApp();
-  } catch(e) { flash('loginAlert','오류: '+e.message,'e'); }
-  finally { setLoad('loginBtn', false, '로그인'); }
-};
-
-// ── 회원가입 ──────────────────────────────────────────────────
-window.doSignup = async () => {
-  const name  = q('#sName').value.trim();
-  const pw    = q('#sPw').value.trim();
-  const book  = q('#sBook').value.trim();
-  if (!name || !pw) { flash('loginAlert','이름과 비밀번호를 입력해주세요.','e'); return; }
-  if (pw.length < 4) { flash('loginAlert','비밀번호는 4자리 이상으로 설정해주세요.','e'); return; }
-  setLoad('signupBtn', true, '신청 중...');
-  try {
-    // 이름 중복 확인
-    const dup = await getDocs(
-      query(collection(db, 'members'), where('name','==',name))
-    );
-    if (!dup.empty) { flash('loginAlert','이미 사용 중인 이름입니다.','e'); return; }
-
-    const ref = await addDoc(collection(db, 'members'), {
-      name, password: pw,
-      joinedAt: serverTimestamp(),
-      lastLogin: serverTimestamp(),
-    });
-    U = { uid: ref.id, name, memberId: ref.id };
-
-    // 책 제목이 있으면 바로 등록
-    if (book) {
-      const bRef = await addDoc(collection(db, 'books'), {
-        memberId: ref.id, memberName: name,
-        title: book, author: '', totalPages: 0,
-        coverUrl: '', toc: '',
-        createdAt: serverTimestamp(), updatedAt: serverTimestamp()
-      });
-      myBook = { bookId: bRef.id, memberId: ref.id, title: book,
-                 author: '', totalPages: 0, coverUrl: '', toc: '' };
-    }
-    await initApp();
-  } catch(e) { flash('loginAlert','오류: '+e.message,'e'); }
-  finally { setLoad('signupBtn', false, '멤버 신청하기'); }
-};
-
-// ── 로그아웃 ──────────────────────────────────────────────────
-window.doLogout = () => {
-  U = null; myBook = null;
-  q('#loginScreen').style.display = 'flex';
-  q('#appWrap').style.display = 'none';
-  q('#lName').value = ''; q('#lPw').value = '';
-  showLogin();
-};
-
-// ── 앱 초기화 ─────────────────────────────────────────────────
-async function initApp() {
-  q('#loginScreen').style.display = 'none';
-  q('#appWrap').style.display = 'block';
-  q('#homeGreet').textContent = `${U.name}님, 오늘도 읽어요 📖`;
-  await loadMyBook();
-  await loadHome();
-  goTab('Home');
+// 익명 로그인 (규칙: if request.auth != null 대응)
+try {
+  await signInAnonymously(auth);
+} catch (e) {
+  console.warn('익명 로그인 실패 (Authentication에서 익명 로그인을 켜주세요):', e.message);
 }
 
-// ── 탭 이동 ───────────────────────────────────────────────────
-window.goTab = async function(tab) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  q(`#sc${tab}`)?.classList.add('on');
-  const btn = document.querySelector(`[data-sc="${tab}"]`);
-  if (btn) btn.classList.add('active');
-  if (tab === 'Home')    await loadHome();
-  if (tab === 'Feed')    await loadFeed();
-  if (tab === 'Cert')    { loadCertPage(); await loadCertHist(); }
-  if (tab === 'Members') await loadMembers();
-  if (tab === 'MyBook')  renderMyBookPage();
+// HTML escape (XSS 방지)
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, m => (
+    { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]
+  ));
+}
+
+// PIN 해시 (평문 저장 방지)
+async function hashPin(pin) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('bbooks:' + pin));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const MONTH_KEY = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+};
+const TODAY = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const DAYS_IN_MONTH = () => new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+
+// Firestore 헬퍼
+const participantsCol = () => collection(db, `challenges/${MONTH_KEY()}/participants`);
+const checkinsCol = () => collection(db, `challenges/${MONTH_KEY()}/checkins`);
+
+async function getParticipants() {
+  const snap = await getDocs(participantsCol());
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+async function getCheckins() {
+  const snap = await getDocs(checkinsCol());
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+async function getTodayCheckins() {
+  const snap = await getDocs(query(checkinsCol(), where('date', '==', TODAY())));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+// 월 정보
+function initMonthInfo() {
+  const d = new Date();
+  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('monthBadge').textContent = `${d.getFullYear()}년 ${months[d.getMonth()]} 챌린지`;
+}
+
+// 탭 전환
+window.showView = function(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  ['home','checkin','admin'].forEach((n,i) => {
+    if (n === name) document.querySelectorAll('.tab-bar button')[i].classList.add('active');
+  });
+  document.getElementById('successBanner').classList.remove('show');
+  if (name === 'home') renderHome();
+  if (name === 'checkin') renderCheckin();
+  if (name === 'admin' && adminUnlocked) renderAdminPanel();
 };
 
-// ══ 홈 ═══════════════════════════════════════════════════════
-async function loadHome() {
-  if (myBook) {
-    q('#homeBook').textContent = myBook.title;
-    // 내 인증 통계
-    const snap = await getDocs(
-      query(collection(db,'certs'), where('memberId','==',U.uid))
-    );
-    let total = 0, days = 0, todayCerted = false;
-    const today = todayStr();
-    snap.forEach(d => {
-      const c = d.data();
-      total += Number(c.todayPages) || 0;
-      days++;
-      if (c.date === today) todayCerted = true;
-    });
-    const pct = myBook.totalPages > 0
-      ? Math.min(100, Math.round(total / myBook.totalPages * 100)) : 0;
-    q('#hTotal').textContent = total;
-    q('#hDays').textContent  = days;
-    q('#hPct').textContent   = pct + '%';
-    q('#hBar').style.width   = pct + '%';
-    q('#todayBadge').innerHTML = todayCerted
-      ? `<span style="font-size:20px">✅</span>`
-      : `<span class="badge">오늘 미인증</span>`;
-  } else {
-    q('#homeBook').textContent = '책을 등록해주세요';
+// 미니 캘린더
+function renderMiniCalendar(checkinDates) {
+  const days = DAYS_IN_MONTH();
+  const today = new Date().getDate();
+  const mk = MONTH_KEY();
+  let html = '<div class="mini-calendar">';
+  for (let d = 1; d <= days; d++) {
+    const dateStr = `${mk}-${String(d).padStart(2,'0')}`;
+    let cls = 'day';
+    if (checkinDates.includes(dateStr)) cls += ' checked';
+    else if (d > today) cls += ' future';
+    if (d === today) cls += ' today';
+    html += `<div class="${cls}">${d}</div>`;
   }
-
-  // 오늘 전체 인증 현황
-  const snap2 = await getDocs(
-    query(collection(db,'certs'), where('date','==',todayStr()))
-  );
-  const el = q('#todayList');
-  if (snap2.empty) {
-    el.innerHTML = `<div class="empty" style="padding:24px"><div class="ei" style="font-size:28px">🌅</div><div style="font-size:13px">오늘 첫 인증을 해보세요!</div></div>`;
-    return;
-  }
-  const certs = [];
-  snap2.forEach(d => certs.push(d.data()));
-  el.innerHTML = certs.map(c => `
-    <div class="card" style="padding:13px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px">
-      <div class="avatar">${c.memberName[0]}</div>
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:700;color:var(--green)">${c.memberName}</div>
-        <div style="font-size:11px;color:var(--muted)">${c.bookTitle||''}</div>
-        ${c.memo?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(c.memo)}</div>`:''}
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div style="font-size:18px;font-weight:700;color:var(--accent)">${c.todayPages}p</div>
-      </div>
-    </div>`).join('');
+  return html + '</div>';
 }
 
-// ══ 피드 ═════════════════════════════════════════════════════
-async function loadFeed() {
-  const el = q('#feedList');
-  el.innerHTML = `<div class="empty"><div class="ei">💬</div>불러오는 중...</div>`;
+// 현황
+async function renderHome() {
   try {
-    const snap = await getDocs(
-      query(collection(db,'sentences'), orderBy('createdAt','desc'))
+    const [participants, checkins] = await Promise.all([getParticipants(), getCheckins()]);
+    const todayCount = checkins.filter(c => c.date === TODAY()).length;
+
+    document.getElementById('statRow').innerHTML = `
+      <div class="stat-box"><div class="num">${participants.length}</div><div class="label">참여자</div></div>
+      <div class="stat-box"><div class="num">${todayCount}</div><div class="label">오늘 인증</div></div>
+      <div class="stat-box"><div class="num">${checkins.length}</div><div class="label">총 인증 수</div></div>
+    `;
+
+    const nickCheckins = {};
+    checkins.forEach(c => {
+      if (!nickCheckins[c.nick]) nickCheckins[c.nick] = [];
+      nickCheckins[c.nick].push(c.date);
+    });
+
+    const sorted = [...participants].sort((a,b) =>
+      (nickCheckins[b.nick]||[]).length - (nickCheckins[a.nick]||[]).length
     );
-    if (snap.empty) {
-      el.innerHTML = `<div class="empty"><div class="ei">💬</div>아직 공유된 문장이 없어요<br><small style="font-size:12px;margin-top:6px;display:block">+ 버튼으로 첫 문장을 올려보세요!</small></div>`;
+
+    const list = document.getElementById('participantList');
+    if (!sorted.length) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">📚</div>아직 참여자가 없어요.</div>`;
       return;
     }
-    // 댓글 수 병합
-    const sentences = [];
-    for (const d of snap.docs) {
-      const s = { id: d.id, ...d.data() };
-      const cmtSnap = await getDocs(collection(db,'sentences',d.id,'comments'));
-      s.commentCount = cmtSnap.size;
-      sentences.push(s);
-    }
-    el.innerHTML = sentences.map(s => {
-      const tags = (s.tags||'').split(',').filter(Boolean).map(t=>tagPill(t)).join('');
-      return `<div class="sc">
-        <div class="sc-hd">
-          <div class="avatar">${s.memberName[0]}</div>
-          <div>
-            <div class="sc-name">${esc(s.memberName)}</div>
-            <div class="sc-book">${esc(s.bookTitle||'')}</div>
+    list.innerHTML = sorted.map(p => {
+      const dates = nickCheckins[p.nick] || [];
+      const cnt = dates.length;
+      const isSuccess = cnt >= SUCCESS_THRESHOLD;
+      return `<div class="card">
+        <div class="participant-card">
+          <div class="avatar">${esc(p.nick[0])}</div>
+          <div class="participant-info">
+            <div class="participant-name">${esc(p.nick)}${isSuccess ? ' <span class="badge-success">🏆 성공</span>' : ''}</div>
+            ${p.book ? `<div class="participant-book">📖 ${esc(p.book)}</div>` : ''}
+            <div class="check-count"><strong>${cnt}</strong> / ${DAYS_IN_MONTH()}일 인증</div>
+            ${renderMiniCalendar(dates)}
           </div>
-          <div style="margin-left:auto;font-size:11px;color:var(--muted)">${fmtD(s.date)}</div>
-        </div>
-        <div class="sc-sent">${esc(s.sentence)}</div>
-        <div class="sc-pg">${s.page?'p. '+s.page:''}</div>
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div style="display:flex;gap:5px;flex-wrap:wrap">${tags}</div>
-          <button class="cmt-btn" onclick="openCmt('${s.id}','${escA(s.sentence)}')">
-            💬 ${s.commentCount>0?s.commentCount+' 개':'댓글'}
-          </button>
         </div>
       </div>`;
     }).join('');
   } catch(e) {
-    el.innerHTML = `<div class="empty"><div class="ei">⚠️</div>${e.message}</div>`;
+    document.getElementById('participantList').innerHTML =
+      `<div class="error-banner">데이터를 불러오지 못했어요.<br>${e.message}</div>`;
   }
 }
 
-// ══ 인증 ═════════════════════════════════════════════════════
-function loadCertPage() {
-  q('#certDate').textContent = '📅 ' + todayStr();
-  q('#certBook').textContent = myBook ? myBook.title : '📖 내 책 탭에서 책을 먼저 등록해주세요';
+// 인증
+async function renderCheckin() {
+  const participants = await getParticipants();
+  const sel = document.getElementById('checkinNick');
+  sel.innerHTML = '<option value="">-- 닉네임 선택 --</option>' +
+    participants.map(p => `<option value="${esc(p.nick)}">${esc(p.nick)}</option>`).join('');
+
+  sel.onchange = async () => {
+    const nick = sel.value;
+    const status = document.getElementById('todayStatus');
+    if (!nick) { status.classList.remove('show'); return; }
+    const q = query(checkinsCol(), where('nick','==',nick), where('date','==',TODAY()));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const c = snap.docs[0].data();
+      status.innerHTML = `✅ 오늘 이미 인증했어요!<br><span style="font-size:12px;opacity:0.8">"${esc(c.quote)}"</span>`;
+      status.classList.add('show');
+    } else {
+      status.classList.remove('show');
+    }
+  };
+  await renderTodayCheckins();
 }
 
-window.submitCert = async () => {
-  if (!myBook) { flash('certAlert','내 책 탭에서 책을 먼저 등록해주세요.','e'); return; }
-  const pages = parseInt(q('#certPages').value);
-  if (!pages || pages < 1) { flash('certAlert','읽은 페이지 수를 입력해주세요.','e'); return; }
-  setLoad('certBtn', true, '인증 중...');
-  try {
-    await addDoc(collection(db,'certs'), {
-      memberId:   U.uid,
-      memberName: U.name,
-      bookId:     myBook.bookId,
-      bookTitle:  myBook.title,
-      date:       todayStr(),
-      todayPages: pages,
-      memo:       q('#certMemo').value.trim(),
-      createdAt:  serverTimestamp()
-    });
-    flash('certAlert', `✅ ${pages}페이지 인증 완료!`, 'o');
-    q('#certPages').value = ''; q('#certMemo').value = '';
-    await loadCertHist();
-    await loadHome();
-  } catch(e) { flash('certAlert','오류: '+e.message,'e'); }
-  finally { setLoad('certBtn', false, '인증하기 ✅'); }
-};
-
-async function loadCertHist() {
-  const snap = await getDocs(
-    query(collection(db,'certs'), where('memberId','==',U.uid), orderBy('createdAt','desc'))
-  );
-  const el = q('#certHist');
-  if (snap.empty) {
-    el.innerHTML = `<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">아직 인증 내역이 없어요</div>`;
+async function renderTodayCheckins() {
+  const list = await getTodayCheckins();
+  const el = document.getElementById('todayCheckinList');
+  if (!list.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px">아직 오늘 인증한 분이 없어요</div>';
     return;
   }
-  const certs = [];
-  snap.forEach(d => certs.push(d.data()));
-  el.innerHTML = certs.slice(0,10).map(c => `
-    <div class="cert-row">
-      <div>
-        <div style="font-size:12px;color:var(--muted)">${c.date}</div>
-        ${c.memo?`<div style="font-size:11px;color:var(--muted)">${esc(c.memo)}</div>`:''}
+  el.innerHTML = list.map(c => `
+    <div class="checkin-item">
+      <div class="checkin-meta">
+        <span class="checkin-nick">${esc(c.nick)}</span>
+        <span class="checkin-time">${esc(c.time)}</span>
       </div>
-      <div style="font-size:16px;font-weight:700;color:var(--green)">+${c.todayPages}p</div>
-    </div>`).join('');
+      <div class="checkin-quote">${esc(c.quote)}</div>
+    </div>
+  `).join('');
 }
 
-// ══ 멤버 ═════════════════════════════════════════════════════
-async function loadMembers() {
-  const el = q('#memberList');
-  el.innerHTML = `<div class="empty"><div class="ei">👥</div>불러오는 중...</div>`;
-  try {
-    const [mSnap, bSnap, cSnap] = await Promise.all([
-      getDocs(collection(db,'members')),
-      getDocs(collection(db,'books')),
-      getDocs(collection(db,'certs')),
-    ]);
-    // 멤버별 책·인증 집계
-    const books  = {}; bSnap.forEach(d => { books[d.data().memberId]  = d.data(); });
-    const certs  = {}; // memberId → { pages, days }
-    cSnap.forEach(d => {
-      const c = d.data();
-      if (!certs[c.memberId]) certs[c.memberId] = { pages:0, days:0 };
-      certs[c.memberId].pages += Number(c.todayPages)||0;
-      certs[c.memberId].days++;
-    });
-    const members = [];
-    mSnap.forEach(d => members.push({ uid: d.id, ...d.data() }));
-    members.sort((a,b) => (certs[b.uid]?.pages||0) - (certs[a.uid]?.pages||0));
+window.doCheckin = async function() {
+  const nick = document.getElementById('checkinNick').value;
+  const pin = document.getElementById('checkinPin').value;
+  const quote = document.getElementById('checkinQuote').value.trim();
+  if (!nick) { alert('닉네임을 선택해주세요.'); return; }
+  if (!pin || pin.length < 4) { alert('PIN 4자리를 입력해주세요.'); return; }
+  if (!quote) { alert('오늘의 필사를 입력해주세요.\n읽은 내용 중 마음에 든 문장을 한 줄 적어주세요 📖'); return; }
 
-    el.innerHTML = members.map(m => {
-      const bk  = books[m.uid];
-      const ct  = certs[m.uid] || { pages:0, days:0 };
-      const tp  = bk?.totalPages || 0;
-      const pct = tp > 0 ? Math.min(100, Math.round(ct.pages/tp*100)) : 0;
-      return `<div class="mc">
-        <div class="mc-hd">
-          <div class="avatar av-lg">${m.name[0]}</div>
-          <div>
-            <div class="mc-name">${esc(m.name)}</div>
-            <div class="mc-book">${bk?esc(bk.title):'책 미등록'}</div>
-          </div>
+  const btn = document.getElementById('checkinBtn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+
+  try {
+    const participants = await getParticipants();
+    const participant = participants.find(p => p.nick === nick);
+    if (!participant) { alert('참여자를 찾을 수 없어요.'); return; }
+    const pinHash = await hashPin(pin);
+    const ok = participant.pinHash ? (pinHash === participant.pinHash) : (pin === participant.pin);
+    if (!ok) { alert('PIN이 맞지 않아요.'); return; }
+
+    const dupQ = query(checkinsCol(), where('nick','==',nick), where('date','==',TODAY()));
+    const dupSnap = await getDocs(dupQ);
+    if (!dupSnap.empty) { alert('오늘은 이미 인증했어요! 내일 또 만나요 😊'); return; }
+
+    const now = new Date();
+    const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    await addDoc(checkinsCol(), { nick, date: TODAY(), quote, time, createdAt: Date.now() });
+
+    const allQ = query(checkinsCol(), where('nick','==',nick));
+    const allSnap = await getDocs(allQ);
+    const cnt = allSnap.size;
+
+    document.getElementById('successMsg').textContent =
+      `이번 달 ${cnt}일째 인증 🌿 ${cnt >= SUCCESS_THRESHOLD ? '챌린지 성공! 🏆' : `목표까지 ${SUCCESS_THRESHOLD - cnt}일 남았어요`}`;
+    document.getElementById('successBanner').classList.add('show');
+    document.getElementById('checkinQuote').value = '';
+    document.getElementById('checkinPin').value = '';
+    document.getElementById('checkinNick').value = '';
+    document.getElementById('todayStatus').classList.remove('show');
+    await renderTodayCheckins();
+  } catch(e) {
+    alert('오류가 발생했어요: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '오늘 읽었어요 ✅';
+  }
+};
+
+// 어드민
+let adminUnlocked = false;
+
+window.checkAdminPw = function() {
+  if (document.getElementById('adminPwInput').value === ADMIN_PW) {
+    adminUnlocked = true;
+    document.getElementById('adminLock').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    renderAdminPanel();
+  } else {
+    alert('비밀번호가 틀렸어요.');
+    document.getElementById('adminPwInput').value = '';
+  }
+};
+
+window.lockAdmin = function() {
+  adminUnlocked = false;
+  document.getElementById('adminLock').style.display = 'block';
+  document.getElementById('adminPanel').style.display = 'none';
+  document.getElementById('adminPwInput').value = '';
+};
+
+async function renderAdminPanel() {
+  const [participants, checkins] = await Promise.all([getParticipants(), getCheckins()]);
+  const nickCheckins = {};
+  checkins.forEach(c => {
+    if (!nickCheckins[c.nick]) nickCheckins[c.nick] = [];
+    nickCheckins[c.nick].push(c.date);
+  });
+
+  const plist = document.getElementById('adminParticipantList');
+  if (!participants.length) {
+    plist.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px">참여자가 없어요</div>';
+  } else {
+    plist.innerHTML = participants.map(p => {
+      const cnt = (nickCheckins[p.nick]||[]).length;
+      return `<div class="participant-admin-card">
+        <div class="avatar" style="width:36px;height:36px;font-size:13px">${esc(p.nick[0])}</div>
+        <div>
+          <div style="font-size:14px;font-weight:500">${esc(p.nick)}</div>
+          <div style="font-size:12px;color:var(--text-sub)">${esc(p.book || '책 미입력')} · PIN: ••••</div>
         </div>
-        <div style="display:flex;gap:16px;margin-bottom:8px">
-          <div style="text-align:center">
-            <div style="font-size:18px;font-weight:700;color:var(--green)">${ct.pages}</div>
-            <div style="font-size:10px;color:var(--muted)">누계 페이지</div>
-          </div>
-          <div style="text-align:center">
-            <div style="font-size:18px;font-weight:700;color:var(--green)">${ct.days}</div>
-            <div style="font-size:10px;color:var(--muted)">인증 일수</div>
-          </div>
-          <div style="text-align:center">
-            <div style="font-size:18px;font-weight:700;color:var(--accent)">${pct}%</div>
-            <div style="font-size:10px;color:var(--muted)">진행률</div>
-          </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <span class="tag ${cnt >= SUCCESS_THRESHOLD ? 'tag-green' : 'tag-gray'}">${cnt}일</span>
+          <button class="btn btn-danger btn-sm" onclick="removeParticipant('${esc(p.id)}','${esc(p.nick)}')">삭제</button>
         </div>
-        <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>
       </div>`;
     }).join('');
-  } catch(e) {
-    el.innerHTML = `<div class="empty"><div class="ei">⚠️</div>${e.message}</div>`;
   }
-}
 
-// ══ 내 책 ════════════════════════════════════════════════════
-async function loadMyBook() {
-  const snap = await getDocs(
-    query(collection(db,'books'), where('memberId','==',U.uid))
-  );
-  if (!snap.empty) {
-    const d = snap.docs[0];
-    myBook = { bookId: d.id, ...d.data() };
-  }
-}
-
-function renderMyBookPage() {
-  if (myBook) {
-    q('#bookView').style.display = 'block';
-    q('#bookForm').style.display = 'none';
-    q('#bkTitle').textContent  = myBook.title;
-    q('#bkAuthor').textContent = myBook.author || '';
-    q('#bkPages').textContent  = myBook.totalPages;
-    q('#bkCoverImg').src       = myBook.coverUrl || '';
-    if (myBook.toc) {
-      q('#bkTocTxt').textContent = myBook.toc;
-      q('#bkTocCard').style.display = 'block';
-    } else {
-      q('#bkTocCard').style.display = 'none';
-    }
-    q('#bookSaveBtn').textContent = '수정하기';
+  const clist = document.getElementById('adminCheckinList');
+  if (!checkins.length) {
+    clist.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb;font-size:13px">아직 인증 기록이 없어요</div>';
   } else {
-    q('#bookView').style.display = 'none';
-    q('#bookForm').style.display = 'block';
+    clist.innerHTML = checkins.map(c => `
+      <div class="checkin-item">
+        <div class="checkin-meta">
+          <span class="checkin-nick">${esc(c.nick)}</span>
+          <span style="font-size:11px;color:#bbb;margin-left:6px">${esc(c.date)}</span>
+          <span class="checkin-time">${esc(c.time)}</span>
+        </div>
+        <div class="checkin-quote">${esc(c.quote)}</div>
+      </div>
+    `).join('');
   }
 }
-window.renderMyBookPage = renderMyBookPage;
 
-window.showBookForm = () => {
-  q('#bookView').style.display = 'none';
-  q('#bookForm').style.display = 'block';
-  if (myBook) {
-    q('#bTitle').value  = myBook.title      || '';
-    q('#bAuthor').value = myBook.author     || '';
-    q('#bPages').value  = myBook.totalPages || '';
-    q('#bCover').value  = myBook.coverUrl   || '';
-    q('#bToc').value    = myBook.toc        || '';
-    q('#bookSaveBtn').textContent = '수정하기';
+window.removeParticipant = async function(id, nick) {
+  if (!confirm(`${nick}님을 삭제할까요?\n인증 기록은 유지돼요.`)) return;
+  await deleteDoc(doc(db, `challenges/${MONTH_KEY()}/participants`, id));
+  await renderAdminPanel();
+};
+
+window.openAddModal = function() { document.getElementById('addModal').classList.add('show'); };
+window.closeAddModal = function() {
+  document.getElementById('addModal').classList.remove('show');
+  ['addNick','addPin','addBook'].forEach(id => document.getElementById(id).value = '');
+};
+
+window.doAddParticipant = async function() {
+  const nick = document.getElementById('addNick').value.trim();
+  const pin = document.getElementById('addPin').value.trim();
+  const book = document.getElementById('addBook').value.trim();
+  if (!nick) { alert('닉네임을 입력해주세요.'); return; }
+  if (!pin || !/^\d{4}$/.test(pin)) { alert('PIN은 숫자 4자리로 입력해주세요.'); return; }
+
+  const btn = document.getElementById('addBtn');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    const participants = await getParticipants();
+    if (participants.find(p => p.nick === nick)) { alert('이미 있는 닉네임이에요.'); return; }
+    const pinHash = await hashPin(pin);
+    await addDoc(participantsCol(), { nick, pinHash, book, joinedAt: Date.now() });
+    closeAddModal();
+    await renderAdminPanel();
+    alert(`${nick}님을 추가했어요!\nPIN: ${pin}\n(PIN은 해시로 저장되어 어드민 화면엔 다시 표시되지 않으니 따로 기록해두세요)`);
+  } catch(e) {
+    alert('오류: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '추가';
   }
 };
 
-window.saveBook = async () => {
-  const title = q('#bTitle').value.trim();
-  const pages = parseInt(q('#bPages').value);
-  if (!title) { flash('bookAlert','책 제목을 입력해주세요.','e'); return; }
-  if (!pages || pages < 1) { flash('bookAlert','페이지 수를 입력해주세요.','e'); return; }
-  setLoad('bookSaveBtn', true, '저장 중...');
-  try {
-    const data = {
-      memberId:   U.uid, memberName: U.name,
-      title, author:     q('#bAuthor').value.trim(),
-      totalPages: pages, coverUrl: q('#bCover').value.trim(),
-      toc:        q('#bToc').value.trim(),
-      updatedAt:  serverTimestamp()
-    };
-    if (myBook?.bookId) {
-      await updateDoc(doc(db,'books',myBook.bookId), data);
-      myBook = { ...myBook, ...data };
-    } else {
-      data.createdAt = serverTimestamp();
-      const ref = await addDoc(collection(db,'books'), data);
-      myBook = { bookId: ref.id, ...data };
-    }
-    flash('bookAlert','저장되었습니다! ✓','o');
-    renderMyBookPage();
-    // 홈 책 제목도 갱신
-    q('#homeBook').textContent = myBook.title;
-    q('#certBook').textContent = myBook.title;
-  } catch(e) { flash('bookAlert','오류: '+e.message,'e'); }
-  finally { setLoad('bookSaveBtn', false, myBook ? '수정하기' : '책 등록하기'); }
-};
+// 전역 노출
+window.FIREBASE_CONFIG = window.FIREBASE_CONFIG;
 
-// ══ 문장 올리기 ═══════════════════════════════════════════════
-window.openSentModal = () => {
-  if (!myBook) { alert('내 책 탭에서 책을 먼저 등록해주세요!'); return; }
-  selTags = [];
-  q('#stxt').value = ''; q('#spg').value = '';
-  q('#sentAlert').innerHTML = '';
-  document.querySelectorAll('.tag').forEach(t => t.classList.remove('sel'));
-  openOv('sentOv');
-};
-
-window.toggleTag = btn => {
-  const t = btn.dataset.t;
-  if (selTags.includes(t)) { selTags = selTags.filter(x=>x!==t); btn.classList.remove('sel'); }
-  else { selTags.push(t); btn.classList.add('sel'); }
-};
-
-window.submitSent = async () => {
-  const txt = q('#stxt').value.trim();
-  if (!txt) { flash('sentAlert','문장을 입력해주세요.','e'); return; }
-  setLoad('sentBtn', true, '올리는 중...');
-  try {
-    await addDoc(collection(db,'sentences'), {
-      memberId:   U.uid, memberName: U.name,
-      bookId:     myBook.bookId, bookTitle: myBook.title,
-      sentence:   txt, page: q('#spg').value.trim(),
-      tags:       selTags.join(','), date: todayStr(),
-      createdAt:  serverTimestamp()
-    });
-    closeOv('sentOv');
-    await goTab('Feed');
-  } catch(e) { flash('sentAlert','오류: '+e.message,'e'); }
-  finally { setLoad('sentBtn', false, '올리기'); }
-};
-
-// ══ 댓글 ═════════════════════════════════════════════════════
-window.openCmt = async (sentenceId, sentText) => {
-  curSentId = sentenceId;
-  q('#cmtSentPrev').textContent = sentText;
-  q('#cmtInput').value = '';
-  q('#cmtList').innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">불러오는 중...</div>';
-  openOv('cmtOv');
-  await loadCmts(sentenceId);
-};
-
-async function loadCmts(sentenceId) {
-  const snap = await getDocs(
-    query(collection(db,'sentences',sentenceId,'comments'), orderBy('createdAt','asc'))
-  );
-  const el = q('#cmtList');
-  if (snap.empty) {
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">첫 댓글을 남겨보세요!</div>';
-    return;
-  }
-  const cmts = [];
-  snap.forEach(d => cmts.push(d.data()));
-  el.innerHTML = cmts.map(c => `
-    <div class="cmt">
-      <div class="cmt-author">${esc(c.memberName)}</div>
-      <div class="cmt-text">${esc(c.comment)}</div>
-      <div class="cmt-time">${fmtD(c.date)}</div>
-    </div>`).join('');
-}
-
-window.submitCmt = async () => {
-  const txt = q('#cmtInput').value.trim();
-  if (!txt) return;
-  try {
-    await addDoc(collection(db,'sentences',curSentId,'comments'), {
-      memberId:   U.uid, memberName: U.name,
-      comment:    txt, date: todayStr(),
-      createdAt:  serverTimestamp()
-    });
-    q('#cmtInput').value = '';
-    await loadCmts(curSentId);
-  } catch(e) { alert('댓글 등록 실패: '+e.message); }
-};
-
-// ── 오버레이 닫기 ─────────────────────────────────────────────
-document.querySelectorAll('.ov').forEach(ov => {
-  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('on'); });
+// 실시간 동기화: 현황/필사가 다른 멤버 인증 시 자동 갱신
+onSnapshot(checkinsCol(), () => {
+  const active = document.querySelector('.view.active');
+  if (!active) return;
+  if (active.id === 'view-home') renderHome();
+  if (active.id === 'view-checkin') renderTodayCheckins();
+  if (active.id === 'view-admin' && adminUnlocked) renderAdminPanel();
 });
+onSnapshot(participantsCol(), () => {
+  const active = document.querySelector('.view.active');
+  if (!active) return;
+  if (active.id === 'view-home') renderHome();
+  if (active.id === 'view-admin' && adminUnlocked) renderAdminPanel();
+});
+
+// 초기화
+initMonthInfo();
+renderHome();
 </script>
 </body>
 </html>
