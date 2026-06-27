@@ -552,15 +552,11 @@ async function renderHome() {
     }
 
     const todayCheckins = checkins.filter(c => c.date === TODAY());
-    const todayNicks = new Set(todayCheckins.map(c => c.nick));
-    const activeNicks = new Set(checkins.map(c => c.nick));
-    const todayCount = todayNicks.size;
-    const activeCount = activeNicks.size;
+    const todayCount = new Set(todayCheckins.map(c => c.nick)).size;
 
     el.innerHTML = `
       <div class="card home-overview">
         ${renderProgressBlock('오늘 인증', todayCount, total, '오늘 읽은 사람')}
-        ${renderProgressBlock('이번 달 참여', activeCount, total, '한 번이라도 인증한 사람')}
       </div>
     `;
     renderTodayQuoteBanner(todayCheckins);
