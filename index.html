@@ -94,7 +94,13 @@ header .month-badge { display: inline-block; margin-top: 8px; background: rgba(2
 .checkin-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .checkin-nick { font-size: 13px; font-weight: 500; }
 .checkin-time { font-size: 11px; color: #bbb; margin-left: auto; }
+.checkin-book-meta { font-size: 12px; color: var(--green-mid); font-weight: 500; margin-bottom: 6px; line-height: 1.5; }
+.checkin-book-meta .book-title { color: var(--green-dark); font-weight: 700; }
+.checkin-book-meta .book-sep { color: #c5c5c5; margin: 0 5px; font-weight: 400; }
 .checkin-quote { font-size: 13px; color: var(--text-sub); line-height: 1.6; padding-left: 10px; border-left: 2px solid var(--green-soft); }
+.form-row-inline { display: flex; gap: 8px; }
+.form-row-inline input { flex: 1; min-width: 0; }
+.form-row-inline input:last-child { flex: 0 0 64px; }
 
 .loading { text-align: center; padding: 30px; color: var(--text-sub); font-size: 14px; }
 .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--green-soft); border-top-color: var(--green-dark); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px; vertical-align: middle; }
@@ -205,6 +211,14 @@ service cloud.firestore {<br>
         <input type="password" id="checkinPin" maxlength="4" placeholder="4자리 숫자" inputmode="numeric">
       </div>
       <div class="today-status" id="todayStatus"></div>
+      <div class="form-group">
+        <label>읽은 책</label>
+        <div class="form-row-inline">
+          <input type="text" id="checkinBookTitle" maxlength="50" placeholder="책 제목">
+          <input type="text" id="checkinPublisher" maxlength="30" placeholder="출판사">
+          <input type="text" id="checkinPage" maxlength="6" placeholder="쪽" inputmode="numeric">
+        </div>
+      </div>
       <div class="form-group">
         <label>오늘의 필사 <span class="required-mark">*</span></label>
         <textarea id="checkinQuote" rows="3" maxlength="150" placeholder="오늘 읽은 내용 중 마음에 든 문장을 한 줄 적어주세요"></textarea>
@@ -321,6 +335,24 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => (
     { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m]
   ));
+}
+
+function renderBookMeta(c) {
+  const title = (c.bookTitle || '').trim();
+  const publisher = (c.publisher || '').trim();
+  const page = (c.page || '').trim();
+  if (!title && !publisher && !page) return '';
+  let html = '<div class="checkin-book-meta">📖 ';
+  if (title) html += `<span class="book-title">${esc(title)}</span>`;
+  if (publisher) {
+    if (title) html += '<span class="book-sep">·</span>';
+    html += esc(publisher);
+  }
+  if (page) {
+    if (title || publisher) html += '<span class="book-sep">·</span>';
+    html += `${esc(page)}쪽`;
+  }
+  return html + '</div>';
 }
 
 // PIN 해시 (평문 저장 방지)
@@ -460,7 +492,8 @@ async function renderCheckin() {
     const snap = await getDocs(q);
     if (!snap.empty) {
       const c = snap.docs[0].data();
-      status.innerHTML = `✅ 오늘 이미 인증했어요!<br><span style="font-size:12px;opacity:0.8">"${esc(c.quote)}"</span>`;
+      const bookMeta = renderBookMeta(c);
+      status.innerHTML = `✅ 오늘 이미 인증했어요!${bookMeta ? '<br>' + bookMeta : ''}<br><span style="font-size:12px;opacity:0.8">"${esc(c.quote)}"</span>`;
       status.classList.add('show');
     } else {
       status.classList.remove('show');
@@ -482,6 +515,7 @@ async function renderTodayCheckins() {
         <span class="checkin-nick">${esc(c.nick)}</span>
         <span class="checkin-time">${esc(c.time)}</span>
       </div>
+      ${renderBookMeta(c)}
       <div class="checkin-quote">${esc(c.quote)}</div>
     </div>
   `).join('');
@@ -490,6 +524,9 @@ async function renderTodayCheckins() {
 window.doCheckin = async function() {
   const nick = document.getElementById('checkinNick').value;
   const pin = document.getElementById('checkinPin').value;
+  const bookTitle = document.getElementById('checkinBookTitle').value.trim();
+  const publisher = document.getElementById('checkinPublisher').value.trim();
+  const page = document.getElementById('checkinPage').value.trim();
   const quote = document.getElementById('checkinQuote').value.trim();
   if (!nick) { alert('닉네임을 선택해주세요.'); return; }
   if (!pin || pin.length < 4) { alert('PIN 4자리를 입력해주세요.'); return; }
@@ -512,7 +549,12 @@ window.doCheckin = async function() {
 
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    await addDoc(checkinsCol(), { nick, date: TODAY(), quote, time, createdAt: Date.now() });
+    await addDoc(checkinsCol(), {
+      nick, date: TODAY(), quote, time, createdAt: Date.now(),
+      ...(bookTitle && { bookTitle }),
+      ...(publisher && { publisher }),
+      ...(page && { page }),
+    });
 
     const allQ = query(checkinsCol(), where('nick','==',nick));
     const allSnap = await getDocs(allQ);
@@ -522,6 +564,9 @@ window.doCheckin = async function() {
       `이번 달 ${cnt}일째 인증 🌿 ${cnt >= SUCCESS_THRESHOLD ? '챌린지 성공! 🏆' : `목표까지 ${SUCCESS_THRESHOLD - cnt}일 남았어요`}`;
     document.getElementById('successBanner').classList.add('show');
     document.getElementById('checkinQuote').value = '';
+    document.getElementById('checkinBookTitle').value = '';
+    document.getElementById('checkinPublisher').value = '';
+    document.getElementById('checkinPage').value = '';
     document.getElementById('checkinPin').value = '';
     document.getElementById('checkinNick').value = '';
     document.getElementById('todayStatus').classList.remove('show');
@@ -594,6 +639,7 @@ async function renderAdminPanel() {
           <span style="font-size:11px;color:#bbb;margin-left:6px">${esc(c.date)}</span>
           <span class="checkin-time">${esc(c.time)}</span>
         </div>
+        ${renderBookMeta(c)}
         <div class="checkin-quote">${esc(c.quote)}</div>
       </div>
     `).join('');
