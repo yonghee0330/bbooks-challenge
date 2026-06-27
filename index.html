@@ -279,7 +279,7 @@ service cloud.firestore {<br>
 
 <!-- ✅ Firebase config를 여기에 채워주세요 -->
 <script>
-const FIREBASE_CONFIG = {
+window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyC0rkEaYEXQ_16oP-uZOBlFj2HPJbJEnbY",
   authDomain: "page-57b5a.firebaseapp.com",
   projectId: "page-57b5a",
@@ -635,9 +635,6 @@ window.doAddParticipant = async function() {
     btn.disabled = false; btn.textContent = '추가';
   }
 };
-
-// 전역 노출
-window.FIREBASE_CONFIG = window.FIREBASE_CONFIG;
 
 // 실시간 동기화: 현황/필사가 다른 멤버 인증 시 자동 갱신
 onSnapshot(checkinsCol(), () => {
