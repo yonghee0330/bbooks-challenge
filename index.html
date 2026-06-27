@@ -19,19 +19,43 @@
   --text-sub: #5a5a5a;
   --border: #e0ddd5;
   --radius: 12px;
+  --app-max-width: 480px;
 }
-body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
+body { font-family: 'Noto Sans KR', sans-serif; background: #dedad2; color: var(--text); min-height: 100vh; }
 
-header { background: var(--green-dark); color: white; padding: 20px 20px 16px; text-align: center; }
+#app, #setupScreen {
+  max-width: var(--app-max-width);
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg);
+}
+@media (min-width: 481px) {
+  #app, #setupScreen { box-shadow: 0 0 0 1px var(--border), 0 4px 32px rgba(0,0,0,0.08); }
+}
+@media (max-width: 480px) {
+  body { background: var(--bg); }
+}
+
+header { background: var(--green-dark); color: white; padding: 22px 20px 20px; text-align: center; position: relative; }
 header .subtitle { font-size: 12px; opacity: 0.7; margin-bottom: 4px; letter-spacing: 0.05em; }
 header h1 { font-size: 20px; font-weight: 700; }
 header .month-badge { display: inline-block; margin-top: 8px; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 14px; font-size: 13px; }
+.admin-link { position: absolute; top: 14px; right: 16px; z-index: 20; font-size: 11px; color: rgba(255,255,255,0.55); background: none; border: none; font-family: inherit; cursor: pointer; padding: 4px 6px; letter-spacing: 0.02em; text-decoration: underline; }
+.admin-link:hover { color: rgba(255,255,255,0.9); }
+.admin-link:active { color: #fff; }
+#todayQuoteBanner { margin-top: 14px; background: #fff8ee; border-radius: 10px; padding: 18px 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+#todayQuoteBanner .banner-label { font-size: 11px; font-weight: 700; color: var(--green-mid); letter-spacing: 0.08em; margin-bottom: 10px; }
+#todayQuoteBanner .checkin-quote { color: var(--text); font-size: 16px; font-weight: 500; line-height: 1.75; margin-bottom: 8px; }
+#todayQuoteBanner .checkin-book-meta { color: var(--text-sub); font-size: 12px; }
+#todayQuoteBanner .banner-meta { font-size: 12px; color: var(--text-sub); margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+#todayQuoteBanner .banner-like { color: #c0392b; font-weight: 500; }
+#todayQuoteBanner .today-quote-empty { font-size: 13px; color: var(--text-sub); opacity: 0.6; padding: 4px 0; }
 
-.tab-bar { display: flex; background: white; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
-.tab-bar button { flex: 1; padding: 13px 0; border: none; background: none; font-family: inherit; font-size: 14px; color: var(--text-sub); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab-bar { display: flex; background: white; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; width: 100%; }
+.tab-bar button { flex: 1; padding: 14px 0; border: none; background: none; font-family: inherit; font-size: 14px; color: var(--text-sub); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.15s; }
 .tab-bar button.active { color: var(--green-dark); border-bottom-color: var(--green-dark); font-weight: 500; }
 
-.view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
+.view { display: none; padding: 16px 20px 32px; }
 .view.active { display: block; }
 
 .card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; margin-bottom: 12px; }
@@ -88,16 +112,34 @@ header .month-badge { display: inline-block; margin-top: 8px; background: rgba(2
 .stat-box .num { font-size: 26px; font-weight: 700; color: var(--green-dark); }
 .stat-box .label { font-size: 11px; color: var(--green-mid); margin-top: 2px; }
 
+.home-overview { padding: 20px; margin-top: 4px; }
+.progress-block + .progress-block { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); }
+.progress-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.progress-label { font-size: 14px; font-weight: 700; color: var(--text); }
+.progress-nums { font-size: 14px; color: var(--text-sub); }
+.progress-nums strong { font-size: 28px; font-weight: 700; color: var(--green-dark); line-height: 1; }
+.progress-nums .total { font-size: 16px; color: var(--text-sub); }
+.progress-track { height: 12px; background: #f0ede6; border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--green-mid), var(--accent)); border-radius: 999px; transition: width 0.4s ease; min-width: 0; }
+.progress-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+.progress-pct { font-size: 13px; font-weight: 700; color: var(--green-dark); }
+.progress-desc { font-size: 12px; color: var(--text-sub); }
+.dot-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.dot-grid .dot { width: 14px; height: 14px; border-radius: 50%; background: #f0ede6; flex-shrink: 0; }
+.dot-grid .dot.on { background: var(--green-mid); box-shadow: 0 0 0 2px var(--green-light); }
+
 .checkin-list { }
 .checkin-item { padding: 12px 0; border-bottom: 1px solid var(--border); }
 .checkin-item:last-child { border-bottom: none; }
 .checkin-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .checkin-nick { font-size: 13px; font-weight: 500; }
 .checkin-time { font-size: 11px; color: #bbb; margin-left: auto; }
-.checkin-book-meta { font-size: 12px; color: var(--green-mid); font-weight: 500; margin-bottom: 6px; line-height: 1.5; }
-.checkin-book-meta .book-title { color: var(--green-dark); font-weight: 700; }
-.checkin-book-meta .book-sep { color: #c5c5c5; margin: 0 5px; font-weight: 400; }
-.checkin-quote { font-size: 13px; color: var(--text-sub); line-height: 1.6; padding-left: 10px; border-left: 2px solid var(--green-soft); }
+.checkin-quote { font-size: 15px; color: var(--text); font-weight: 500; line-height: 1.7; margin-bottom: 8px; }
+.checkin-book-meta { font-size: 12px; color: var(--text-sub); font-weight: 400; line-height: 1.5; }
+.checkin-actions { margin-top: 8px; }
+.like-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border: 1px solid var(--border); border-radius: 20px; background: white; font-family: inherit; font-size: 13px; color: var(--text-sub); cursor: pointer; transition: all 0.15s; }
+.like-btn:active { opacity: 0.8; }
+.like-btn.liked { border-color: #e8a0a0; background: #fdf0f0; color: #c0392b; }
 .form-row-inline { display: flex; gap: 8px; }
 .form-row-inline input { flex: 1; min-width: 0; }
 .form-row-inline input:last-child { flex: 0 0 64px; }
@@ -119,13 +161,13 @@ header .month-badge { display: inline-block; margin-top: 8px; background: rgba(2
 
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
 .modal-overlay.show { display: flex; }
-.modal { background: white; border-radius: var(--radius); padding: 24px; width: 100%; max-width: 380px; }
+.modal { background: white; border-radius: var(--radius); padding: 24px; width: 100%; max-width: calc(var(--app-max-width) - 40px); }
 .modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
 .modal-actions button { flex: 1; }
 
 /* Firebase 설정 화면 */
-.setup-screen { padding: 24px 20px; max-width: 480px; margin: 0 auto; }
+.setup-screen { padding: 24px 20px 32px; }
 .setup-screen h2 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
 .setup-screen p { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.6; }
 .code-block { background: #f4f2ed; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; color: #444; margin-bottom: 16px; line-height: 1.8; word-break: break-all; }
@@ -172,26 +214,21 @@ service cloud.firestore {<br>
 <!-- 메인 앱 -->
 <div id="app" style="display:none">
   <header>
+    <button type="button" class="admin-link" id="adminLink">admin</button>
     <div class="subtitle">비북스 독서 챌린지</div>
     <h1>하루 10페이지 📖</h1>
     <div class="month-badge" id="monthBadge"></div>
+    <div id="todayQuoteBanner"></div>
   </header>
 
   <div class="tab-bar">
     <button class="active" onclick="showView('home')">현황</button>
     <button onclick="showView('checkin')">오늘 인증</button>
-    <button onclick="showView('admin')">어드민</button>
   </div>
 
   <!-- 현황 -->
   <div id="view-home" class="view active">
-    <div class="stat-row" id="statRow">
-      <div class="stat-box"><div class="num">-</div><div class="label">참여자</div></div>
-      <div class="stat-box"><div class="num">-</div><div class="label">오늘 인증</div></div>
-      <div class="stat-box"><div class="num">-</div><div class="label">총 인증 수</div></div>
-    </div>
-    <div class="section-title">이번 달 참여자</div>
-    <div id="participantList"><div class="loading"><span class="spinner"></span>불러오는 중...</div></div>
+    <div id="homeOverview"><div class="loading"><span class="spinner"></span>불러오는 중...</div></div>
   </div>
 
   <!-- 인증 -->
@@ -203,8 +240,8 @@ service cloud.firestore {<br>
     </div>
     <div class="card">
       <div class="form-group">
-        <label>닉네임 선택</label>
-        <select id="checkinNick"><option value="">-- 닉네임 선택 --</option></select>
+        <label>닉네임</label>
+        <input type="text" id="checkinNick" maxlength="8" placeholder="예: 책읽는곰" onblur="checkTodayStatus()">
       </div>
       <div class="form-group">
         <label>PIN 번호</label>
@@ -305,7 +342,7 @@ window.FIREBASE_CONFIG = {
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, doc, getDoc, getDocs, addDoc, deleteDoc, query, where, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const ADMIN_PW = 'bbooks2024';
@@ -342,17 +379,63 @@ function renderBookMeta(c) {
   const publisher = (c.publisher || '').trim();
   const page = (c.page || '').trim();
   if (!title && !publisher && !page) return '';
-  let html = '<div class="checkin-book-meta">📖 ';
-  if (title) html += `<span class="book-title">${esc(title)}</span>`;
-  if (publisher) {
-    if (title) html += '<span class="book-sep">·</span>';
-    html += esc(publisher);
+  const parts = [];
+  if (title) parts.push(`&lt; ${esc(title)} &gt;`);
+  if (publisher) parts.push(esc(publisher));
+  if (page) parts.push(`p.${esc(page)}`);
+  return `<div class="checkin-book-meta">${parts.join(', ')}</div>`;
+}
+
+function renderCheckinBody(c) {
+  return `<div class="checkin-quote">${esc(c.quote)}</div>${renderBookMeta(c)}`;
+}
+
+function getLikeCount(c) {
+  return (c.likes || []).length;
+}
+
+function hasLiked(c, nick) {
+  return nick && (c.likes || []).includes(nick);
+}
+
+function pickTodayQuote(todayCheckins) {
+  if (!todayCheckins.length) return null;
+  return [...todayCheckins].sort((a, b) => {
+    const diff = getLikeCount(b) - getLikeCount(a);
+    if (diff !== 0) return diff;
+    return (a.createdAt || 0) - (b.createdAt || 0);
+  })[0];
+}
+
+function renderLikeBtn(c) {
+  const nick = document.getElementById('checkinNick')?.value?.trim() || '';
+  const liked = hasLiked(c, nick);
+  return `
+    <div class="checkin-actions">
+      <button type="button" class="like-btn${liked ? ' liked' : ''}" onclick="toggleLike('${esc(c.id)}')">♥ ${getLikeCount(c)}</button>
+    </div>
+  `;
+}
+
+function renderTodayQuoteBanner(todayCheckins) {
+  const el = document.getElementById('todayQuoteBanner');
+  if (!el) return;
+  const top = pickTodayQuote(todayCheckins);
+  if (!top) {
+    el.innerHTML = `
+      <div class="banner-label">오늘의 문장</div>
+      <div class="today-quote-empty">아직 오늘 필사가 없어요</div>
+    `;
+    return;
   }
-  if (page) {
-    if (title || publisher) html += '<span class="book-sep">·</span>';
-    html += `${esc(page)}쪽`;
-  }
-  return html + '</div>';
+  el.innerHTML = `
+    <div class="banner-label">오늘의 문장</div>
+    ${renderCheckinBody(top)}
+    <div class="banner-meta">
+      <span>— ${esc(top.nick)}</span>
+      <span class="banner-like">♥ ${getLikeCount(top)}</span>
+    </div>
+  `;
 }
 
 // PIN 해시 (평문 저장 방지)
@@ -390,6 +473,9 @@ async function getTodayCheckins() {
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 }
 
+// 어드민
+let adminUnlocked = false;
+
 // 월 정보
 function initMonthInfo() {
   const d = new Date();
@@ -402,105 +488,106 @@ window.showView = function(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
-  ['home','checkin','admin'].forEach((n,i) => {
+  ['home','checkin'].forEach((n,i) => {
     if (n === name) document.querySelectorAll('.tab-bar button')[i].classList.add('active');
   });
   document.getElementById('successBanner').classList.remove('show');
   if (name === 'home') renderHome();
   if (name === 'checkin') renderCheckin();
-  if (name === 'admin' && adminUnlocked) renderAdminPanel();
+  if (name === 'admin') {
+    if (adminUnlocked) {
+      document.getElementById('adminLock').style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
+      renderAdminPanel();
+    } else {
+      document.getElementById('adminLock').style.display = 'block';
+      document.getElementById('adminPanel').style.display = 'none';
+    }
+  }
 };
 
-// 미니 캘린더
-function renderMiniCalendar(checkinDates) {
-  const days = DAYS_IN_MONTH();
-  const today = new Date().getDate();
-  const mk = MONTH_KEY();
-  let html = '<div class="mini-calendar">';
-  for (let d = 1; d <= days; d++) {
-    const dateStr = `${mk}-${String(d).padStart(2,'0')}`;
-    let cls = 'day';
-    if (checkinDates.includes(dateStr)) cls += ' checked';
-    else if (d > today) cls += ' future';
-    if (d === today) cls += ' today';
-    html += `<div class="${cls}">${d}</div>`;
+window.openAdmin = function() {
+  showView('admin');
+};
+
+// 현황
+function renderDotGrid(filled, total) {
+  if (!total) return '';
+  let html = '<div class="dot-grid">';
+  for (let i = 0; i < total; i++) {
+    html += `<div class="dot${i < filled ? ' on' : ''}"></div>`;
   }
   return html + '</div>';
 }
 
-// 현황
+function renderProgressBlock(label, filled, total, desc) {
+  const pct = total ? Math.round((filled / total) * 100) : 0;
+  const width = total ? Math.max((filled / total) * 100, filled ? 4 : 0) : 0;
+  return `
+    <div class="progress-block">
+      <div class="progress-top">
+        <span class="progress-label">${label}</span>
+        <span class="progress-nums"><strong>${filled}</strong><span class="total"> / ${total}명</span></span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" style="width:${width}%"></div></div>
+      <div class="progress-foot">
+        <span class="progress-desc">${desc}</span>
+        <span class="progress-pct">${pct}%</span>
+      </div>
+      ${renderDotGrid(filled, total)}
+    </div>
+  `;
+}
+
 async function renderHome() {
+  const el = document.getElementById('homeOverview');
   try {
     const [participants, checkins] = await Promise.all([getParticipants(), getCheckins()]);
-    const todayCount = checkins.filter(c => c.date === TODAY()).length;
+    const total = participants.length;
 
-    document.getElementById('statRow').innerHTML = `
-      <div class="stat-box"><div class="num">${participants.length}</div><div class="label">참여자</div></div>
-      <div class="stat-box"><div class="num">${todayCount}</div><div class="label">오늘 인증</div></div>
-      <div class="stat-box"><div class="num">${checkins.length}</div><div class="label">총 인증 수</div></div>
-    `;
-
-    const nickCheckins = {};
-    checkins.forEach(c => {
-      if (!nickCheckins[c.nick]) nickCheckins[c.nick] = [];
-      nickCheckins[c.nick].push(c.date);
-    });
-
-    const sorted = [...participants].sort((a,b) =>
-      (nickCheckins[b.nick]||[]).length - (nickCheckins[a.nick]||[]).length
-    );
-
-    const list = document.getElementById('participantList');
-    if (!sorted.length) {
-      list.innerHTML = `<div class="empty-state"><div class="icon">📚</div>아직 참여자가 없어요.</div>`;
+    if (!total) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">📚</div>아직 참여자가 없어요.</div>`;
+      renderTodayQuoteBanner(checkins.filter(c => c.date === TODAY()));
       return;
     }
-    list.innerHTML = sorted.map(p => {
-      const dates = nickCheckins[p.nick] || [];
-      const cnt = dates.length;
-      const isSuccess = cnt >= SUCCESS_THRESHOLD;
-      return `<div class="card">
-        <div class="participant-card">
-          <div class="avatar">${esc(p.nick[0])}</div>
-          <div class="participant-info">
-            <div class="participant-name">${esc(p.nick)}${isSuccess ? ' <span class="badge-success">🏆 성공</span>' : ''}</div>
-            ${p.book ? `<div class="participant-book">📖 ${esc(p.book)}</div>` : ''}
-            <div class="check-count"><strong>${cnt}</strong> / ${DAYS_IN_MONTH()}일 인증</div>
-            ${renderMiniCalendar(dates)}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
+
+    const todayCheckins = checkins.filter(c => c.date === TODAY());
+    const todayNicks = new Set(todayCheckins.map(c => c.nick));
+    const activeNicks = new Set(checkins.map(c => c.nick));
+    const todayCount = todayNicks.size;
+    const activeCount = activeNicks.size;
+
+    el.innerHTML = `
+      <div class="card home-overview">
+        ${renderProgressBlock('오늘 인증', todayCount, total, '오늘 읽은 사람')}
+        ${renderProgressBlock('이번 달 참여', activeCount, total, '한 번이라도 인증한 사람')}
+      </div>
+    `;
+    renderTodayQuoteBanner(todayCheckins);
   } catch(e) {
-    document.getElementById('participantList').innerHTML =
-      `<div class="error-banner">데이터를 불러오지 못했어요.<br>${e.message}</div>`;
+    el.innerHTML = `<div class="error-banner">데이터를 불러오지 못했어요.<br>${esc(e.message)}</div>`;
   }
 }
 
 // 인증
 async function renderCheckin() {
-  const participants = await getParticipants();
-  const sel = document.getElementById('checkinNick');
-  sel.innerHTML = '<option value="">-- 닉네임 선택 --</option>' +
-    participants.map(p => `<option value="${esc(p.nick)}">${esc(p.nick)}</option>`).join('');
-
-  sel.onchange = async () => {
-    const nick = sel.value;
-    const status = document.getElementById('todayStatus');
-    if (!nick) { status.classList.remove('show'); return; }
-    const q = query(checkinsCol(), where('nick','==',nick), where('date','==',TODAY()));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      const c = snap.docs[0].data();
-      const bookMeta = renderBookMeta(c);
-      status.innerHTML = `✅ 오늘 이미 인증했어요!${bookMeta ? '<br>' + bookMeta : ''}<br><span style="font-size:12px;opacity:0.8">"${esc(c.quote)}"</span>`;
-      status.classList.add('show');
-    } else {
-      status.classList.remove('show');
-    }
-  };
   await renderTodayCheckins();
 }
+
+window.checkTodayStatus = async function() {
+  const nick = document.getElementById('checkinNick').value.trim();
+  const status = document.getElementById('todayStatus');
+  if (!nick) { status.classList.remove('show'); return; }
+  const q = query(checkinsCol(), where('nick','==',nick), where('date','==',TODAY()));
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    const c = snap.docs[0].data();
+    status.innerHTML = `✅ 오늘 이미 인증했어요!<div style="margin-top:10px">${renderCheckinBody(c)}</div>`;
+    status.classList.add('show');
+  } else {
+    status.classList.remove('show');
+  }
+};
 
 async function renderTodayCheckins() {
   const list = await getTodayCheckins();
@@ -515,20 +602,39 @@ async function renderTodayCheckins() {
         <span class="checkin-nick">${esc(c.nick)}</span>
         <span class="checkin-time">${esc(c.time)}</span>
       </div>
-      ${renderBookMeta(c)}
-      <div class="checkin-quote">${esc(c.quote)}</div>
+      ${renderCheckinBody(c)}
+      ${renderLikeBtn(c)}
     </div>
   `).join('');
 }
 
+window.toggleLike = async function(checkinId) {
+  const nick = document.getElementById('checkinNick')?.value?.trim();
+  if (!nick) { alert('좋아요를 누르려면 위에 닉네임을 입력해주세요.'); return; }
+
+  try {
+    const ref = doc(db, `challenges/${MONTH_KEY()}/checkins`, checkinId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const likes = snap.data().likes || [];
+    if (likes.includes(nick)) {
+      await updateDoc(ref, { likes: arrayRemove(nick) });
+    } else {
+      await updateDoc(ref, { likes: arrayUnion(nick) });
+    }
+  } catch(e) {
+    alert('좋아요 처리 중 오류가 발생했어요: ' + e.message);
+  }
+};
+
 window.doCheckin = async function() {
-  const nick = document.getElementById('checkinNick').value;
+  const nick = document.getElementById('checkinNick').value.trim();
   const pin = document.getElementById('checkinPin').value;
   const bookTitle = document.getElementById('checkinBookTitle').value.trim();
   const publisher = document.getElementById('checkinPublisher').value.trim();
   const page = document.getElementById('checkinPage').value.trim();
   const quote = document.getElementById('checkinQuote').value.trim();
-  if (!nick) { alert('닉네임을 선택해주세요.'); return; }
+  if (!nick) { alert('닉네임을 입력해주세요.'); return; }
   if (!pin || pin.length < 4) { alert('PIN 4자리를 입력해주세요.'); return; }
   if (!quote) { alert('오늘의 필사를 입력해주세요.\n읽은 내용 중 마음에 든 문장을 한 줄 적어주세요 📖'); return; }
 
@@ -550,7 +656,7 @@ window.doCheckin = async function() {
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
     await addDoc(checkinsCol(), {
-      nick, date: TODAY(), quote, time, createdAt: Date.now(),
+      nick, date: TODAY(), quote, time, createdAt: Date.now(), likes: [],
       ...(bookTitle && { bookTitle }),
       ...(publisher && { publisher }),
       ...(page && { page }),
@@ -578,9 +684,6 @@ window.doCheckin = async function() {
   }
 };
 
-// 어드민
-let adminUnlocked = false;
-
 window.checkAdminPw = function() {
   if (document.getElementById('adminPwInput').value === ADMIN_PW) {
     adminUnlocked = true;
@@ -598,6 +701,7 @@ window.lockAdmin = function() {
   document.getElementById('adminLock').style.display = 'block';
   document.getElementById('adminPanel').style.display = 'none';
   document.getElementById('adminPwInput').value = '';
+  showView('home');
 };
 
 async function renderAdminPanel() {
@@ -636,11 +740,13 @@ async function renderAdminPanel() {
       <div class="checkin-item">
         <div class="checkin-meta">
           <span class="checkin-nick">${esc(c.nick)}</span>
-          <span style="font-size:11px;color:#bbb;margin-left:6px">${esc(c.date)}</span>
-          <span class="checkin-time">${esc(c.time)}</span>
+          <span style="font-size:11px;color:#bbb">${esc(c.date)}</span>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+            <span class="checkin-time" style="margin-left:0">${esc(c.time)}</span>
+            <button class="btn btn-danger btn-sm" onclick="removeCheckin('${esc(c.id)}','${esc(c.nick)}','${esc(c.date)}')">삭제</button>
+          </div>
         </div>
-        ${renderBookMeta(c)}
-        <div class="checkin-quote">${esc(c.quote)}</div>
+        ${renderCheckinBody(c)}
       </div>
     `).join('');
   }
@@ -649,6 +755,12 @@ async function renderAdminPanel() {
 window.removeParticipant = async function(id, nick) {
   if (!confirm(`${nick}님을 삭제할까요?\n인증 기록은 유지돼요.`)) return;
   await deleteDoc(doc(db, `challenges/${MONTH_KEY()}/participants`, id));
+  await renderAdminPanel();
+};
+
+window.removeCheckin = async function(id, nick, date) {
+  if (!confirm(`${nick}님의 ${date} 필사 기록을 삭제할까요?`)) return;
+  await deleteDoc(doc(db, `challenges/${MONTH_KEY()}/checkins`, id));
   await renderAdminPanel();
 };
 
@@ -683,7 +795,9 @@ window.doAddParticipant = async function() {
 };
 
 // 실시간 동기화: 현황/필사가 다른 멤버 인증 시 자동 갱신
-onSnapshot(checkinsCol(), () => {
+onSnapshot(checkinsCol(), async () => {
+  const todayCheckins = await getTodayCheckins();
+  renderTodayQuoteBanner(todayCheckins);
   const active = document.querySelector('.view.active');
   if (!active) return;
   if (active.id === 'view-home') renderHome();
@@ -699,6 +813,7 @@ onSnapshot(participantsCol(), () => {
 
 // 초기화
 initMonthInfo();
+document.getElementById('adminLink')?.addEventListener('click', openAdmin);
 renderHome();
 </script>
 </body>
